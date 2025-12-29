@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Recipe, RecipePhoto } from "../lib/types";
 import { getRecipe, deleteRecipe, updateRecipe } from "../lib/recipeService";
-import { addPhoto, deletePhoto, listPhotos } from "../lib/photoService";
+import { listPhotos } from "../lib/photoService";
 
 
 export default function RecipeDetailPage() {
@@ -10,7 +10,6 @@ export default function RecipeDetailPage() {
   const nav = useNavigate();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [photos, setPhotos] = useState<RecipePhoto[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   async function refresh() {
@@ -165,18 +164,7 @@ export default function RecipeDetailPage() {
                     {recipe.cover_photo_id === p.id ? "Cover" : "Set cover"}
                   </button>
 
-                  <button
-                    className="btn"
-                    onClick={async () => {
-                      if (!confirm("Delete this photo?")) return;
-                      const deletingCover = recipe.cover_photo_id === p.id;
-                      await deletePhoto(p);
-                      if (deletingCover) await updateRecipe(id, { cover_photo_id: null });
-                      await refresh();
-                    }}
-                  >
-                    Delete
-                  </button>
+                  
                 </div>
               </div>
             ))}

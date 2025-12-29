@@ -43,7 +43,7 @@ export default function RecipeForm({
   submitLabel,
 }: {
   initial?: RecipeFormData;
-  onSubmit: (recipe: Omit<RecipeFormData, "createdAt" | "updatedAt">) => Promise<void> | void;
+  onSubmit: (recipe: Omit<RecipeFormData, "createdAt" | "updatedAt">) => Promise<void>;
   submitLabel: string;
 }) {
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -58,11 +58,13 @@ export default function RecipeForm({
   const [servings, setServings] = useState<number | "">(initial?.servings ?? "");
   const [sourceUrl, setSourceUrl] = useState(initial?.sourceUrl ?? "");
   const [error, setError] = useState<string>("");
+  const [saving, setSaving] = useState(false);
 
   const tags = useMemo(() => normaliseTags(tagsText), [tagsText]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (saving) return;
     setError("");
 
     const cleanTitle = title.trim();
@@ -82,18 +84,25 @@ export default function RecipeForm({
       return;
     }
 
-    await onSubmit({
-      ...(initial ? { id: initial.id, coverPhotoId: initial.coverPhotoId } : { id: "" }),
-      title: cleanTitle,
-      description: description.trim() || undefined,
-      tags,
-      ingredients,
-      steps,
-      prepMinutes: prepMinutes === "" ? undefined : Number(prepMinutes),
-      cookMinutes: cookMinutes === "" ? undefined : Number(cookMinutes),
-      servings: servings === "" ? undefined : Number(servings),
-      sourceUrl: sourceUrl.trim() || undefined,
-    });
+    try {
+      setSaving(true);
+      await onSubmit({
+        ...(initial ? { id: initial.id, coverPhotoId: initial.coverPhotoId } : { id: "" }),
+        title: cleanTitle,
+        description: description.trim() || undefined,
+        tags,
+        ingredients,
+        steps,
+        prepMinutes: prepMinutes === "" ? undefined : Number(prepMinutes),
+        cookMinutes: cookMinutes === "" ? undefined : Number(cookMinutes),
+        servings: servings === "" ? undefined : Number(servings),
+        sourceUrl: sourceUrl.trim() || undefined,
+      });
+    } catch (err: any) {
+      setError(err?.message || "Something went wrong. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -196,8 +205,8 @@ export default function RecipeForm({
         />
       </div>
 
-      <button className="btn primary" type="submit">
-        Save
+      <button className="btn primary" type="submit" disabled={saving}>
+        {saving ? "Saving…" : "Save"}
       </button>
     </form>
   );

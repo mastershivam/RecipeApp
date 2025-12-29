@@ -4,6 +4,7 @@ import { listRecipes } from "../lib/recipeService";
 import { listPhotos } from "../lib/photoService";
 import TagFilter from "../ui/TagFilter";
 import RecipeCard from "../ui/RecipeCard";
+import { useLocation, useNavigate } from "react-router-dom";
 
 type CoverMap = Record<string, string | undefined>;
 
@@ -13,6 +14,10 @@ export default function RecipeListPage() {
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [coverUrls, setCoverUrls] = useState<CoverMap>({});
 
+  const loc = useLocation();
+  const nav = useNavigate();
+  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
   async function refresh() {
     const r = await listRecipes();
     setRecipes(r);
@@ -21,6 +26,16 @@ export default function RecipeListPage() {
   useEffect(() => {
     refresh();
   }, []);
+
+  useEffect(() => {
+    const t = (loc.state as any)?.toast;
+    if (t?.message) {
+      setToast(t);
+      nav(loc.pathname, { replace: true, state: {} });
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [loc.state, loc.pathname, nav]);
 
   const allTags = useMemo(() => {
     const s = new Set<string>();
@@ -87,6 +102,20 @@ export default function RecipeListPage() {
           />
         </div>
       </div>
+
+      {toast && (
+        <div
+          className="card"
+          style={{
+            borderColor: toast.type === "success" ? "#bbf7d0" : "#fecaca",
+            background: toast.type === "success" ? "#f0fdf4" : "#fef2f2",
+            fontWeight: 700,
+          }}
+        >
+          {toast.type === "success" ? "✅ " : "⚠️ "}
+          {toast.message}
+        </div>
+      )}
 
       <TagFilter
         tags={allTags}

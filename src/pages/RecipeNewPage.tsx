@@ -11,6 +11,7 @@ type PendingPhoto = { id: string; file: File; previewUrl: string };
 export default function RecipeNewPage() {
   const nav = useNavigate();
   const [pending, setPending] = useState<PendingPhoto[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   function addPending(files: FileList) {
     const next: PendingPhoto[] = [];
@@ -40,6 +41,7 @@ export default function RecipeNewPage() {
         onFiles={addPending}
         pendingPhotos={pending}
         onRemovePending={removePending}
+        isUploading={uploading}
       />
 
       <RecipeForm
@@ -60,18 +62,26 @@ export default function RecipeNewPage() {
 
           // 2) Upload photos + set cover
           let firstPhotoId: string | null = null;
-          for (const p of pending) {
-            const uploaded = await addPhoto(recipe.id, p.file);
-            if (!firstPhotoId) firstPhotoId = uploaded.id;
-            URL.revokeObjectURL(p.previewUrl);
+
+          if (pending.length > 0) {
+            setUploading(true);
+            try {
+              for (const p of pending) {
+                const uploaded = await addPhoto(recipe.id, p.file);
+                if (!firstPhotoId) firstPhotoId = uploaded.id;
+                URL.revokeObjectURL(p.previewUrl);
+              }
+              setPending([]);
+            } finally {
+              setUploading(false);
+            }
           }
-          setPending([]);
 
           if (firstPhotoId) {
             await updateRecipe(recipe.id, { cover_photo_id: firstPhotoId });
           }
 
-          nav(`/recipes/${recipe.id}`);
+          nav("/", { state: { toast: { type: "success", message: "Recipe saved." } } });
         }}
       />
     </div>

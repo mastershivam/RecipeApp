@@ -29,7 +29,7 @@ export default function AppLayout() {
       <div className="container">
         <Outlet />
         <div className="muted small" style={{ marginTop: 18 }}>
-          Cloud-synced — sign in on your phone to see the same recipes.
+          Cloud-synced.
         </div>
       </div>
     </>

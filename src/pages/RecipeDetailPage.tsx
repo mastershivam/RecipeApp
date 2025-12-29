@@ -10,6 +10,7 @@ export default function RecipeDetailPage() {
   const nav = useNavigate();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [photos, setPhotos] = useState<RecipePhoto[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   async function refresh() {
     if (!id) return;
@@ -92,9 +93,15 @@ export default function RecipeDetailPage() {
       </div>
 
       <PhotoUploader
+        isUploading={uploading}
         onFiles={async (files) => {
-          for (const f of Array.from(files)) await addPhoto(id, f);
-          await refresh();
+          setUploading(true);
+          try {
+            for (const f of Array.from(files)) await addPhoto(id, f);
+            await refresh();
+          } finally {
+            setUploading(false);
+          }
         }}
       />
 

@@ -1,7 +1,26 @@
 import { supabase } from "./supabaseClient";
 import type { RecipePhoto } from "./types";
+import heic2any from "heic2any";
 
 const BUCKET = "recipe-photos";
+
+function isHeic(file: File) {
+    const name = file.name.toLowerCase();
+    return file.type === "image/heic" || file.type === "image/heif" || name.endsWith(".heic") || name.endsWith(".heif");
+  }
+  
+  async function convertHeicToJpeg(file: File): Promise<File> {
+    const converted = await heic2any({
+      blob: file,
+      toType: "image/jpeg",
+      quality: 0.9,
+    });
+  
+    const blob = Array.isArray(converted) ? converted[0] : converted;
+    const newName = file.name.replace(/\.(heic|heif)$/i, ".jpg");
+  
+    return new File([blob as BlobPart], newName, { type: "image/jpeg" });
+  }
 
 async function getUserId(): Promise<string> {
   const { data, error } = await supabase.auth.getUser();
@@ -27,11 +46,17 @@ export async function addPhoto(recipeId: string, file: File): Promise<RecipePhot
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const storagePath = `${userId}/${recipeId}/${photoId}.${ext}`;
 
+  //Convert from HEIC
+  let uploadFile = file;
+    if (isHeic(file)) {
+  uploadFile = await convertHeicToJpeg(file);
+}
   // Upload to storage
-  const { error: upErr } = await supabase.storage.from(BUCKET).upload(storagePath, file, {
-    contentType: file.type,
-    upsert: true,
-  });
+
+  const { error: upErr } = await supabase.storage.from(BUCKET).upload(storagePath, uploadFile, {
+  contentType: uploadFile.type,
+  upsert: true,
+});
   if (upErr) throw new Error(upErr.message);
 
   // Update metadata row with final storage_path

@@ -8,12 +8,14 @@ export default function PhotoUploader({
   onRemovePending,
   title = "Photos",
   subtitle = "Stored locally in your browser",
+  isUploading = false,
 }: {
   onFiles: (files: FileList) => void;
   pendingPhotos?: PendingPhoto[];
   onRemovePending?: (id: string) => void;
   title?: string;
   subtitle?: string;
+  isUploading?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -25,8 +27,13 @@ export default function PhotoUploader({
           <div className="muted small">{subtitle}</div>
         </div>
         <div style={{ flex: 0 }}>
-          <button className="btn" type="button" onClick={() => inputRef.current?.click()}>
-            Upload
+          <button
+            className="btn"
+            type="button"
+            disabled={isUploading}
+            onClick={() => inputRef.current?.click()}
+          >
+            {isUploading ? "Uploading…" : "Upload"}
           </button>
           <input
             ref={inputRef}
@@ -41,6 +48,8 @@ export default function PhotoUploader({
           />
         </div>
       </div>
+
+      {isUploading && <div className="muted small">Uploading photos… please keep this tab open.</div>}
 
       {pendingPhotos && pendingPhotos.length > 0 && (
         <>

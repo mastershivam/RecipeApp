@@ -55,16 +55,28 @@ export async function addPhoto(recipeId: string, file: File): Promise<RecipePhot
   const storagePath = `${userId}/${recipeId}/${photoId}.${ext}`;
 
   // Upload to storage
-  const { error: upErr } = await supabase.storage.from(BUCKET).upload(storagePath, uploadFile, {
+  const { data: upData, error: upErr } = await supabase.storage
+  .from(BUCKET)
+  .upload(storagePath, uploadFile, {
     contentType: uploadFile.type,
-    upsert: true,
+    // IMPORTANT: remove upsert for now
+    // upsert: true,
   });
-  
-  if (upErr) {
-    // Clean up the metadata row if upload fails
-    await supabase.from("recipe_photos").delete().eq("id", photoId);
-    throw new Error(`Failed to upload photo: ${upErr.message}`);
-  }
+
+if (upErr) {
+console.error("Storage upload failed", {
+    message: upErr.message,
+    name: upErr.name,
+    status: (upErr as any).status,
+    bucket: BUCKET,
+    path: storagePath,
+});
+
+// cleanup the metadata row so you don't get orphan rows
+await supabase.from("recipe_photos").delete().eq("id", photoId);
+
+throw new Error(`Failed to upload file: ${upErr.message}`);
+}
 
   // Update metadata row with final storage_path
   const { data: updated, error: updErr } = await supabase

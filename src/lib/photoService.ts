@@ -43,21 +43,28 @@ export async function addPhoto(recipeId: string, file: File): Promise<RecipePhot
   if (metaErr) throw new Error(metaErr.message);
 
   const photoId = meta.id as string;
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  
+  // Convert from HEIC if needed (must do this before determining extension)
+  let uploadFile = file;
+  if (isHeic(file)) {
+    uploadFile = await convertHeicToJpeg(file);
+  }
+  
+  // Determine extension from the file that will actually be uploaded
+  const ext = (uploadFile.name.split(".").pop() || "jpg").toLowerCase();
   const storagePath = `${userId}/${recipeId}/${photoId}.${ext}`;
 
-  //Convert from HEIC
-  let uploadFile = file;
-    if (isHeic(file)) {
-  uploadFile = await convertHeicToJpeg(file);
-}
   // Upload to storage
-
   const { error: upErr } = await supabase.storage.from(BUCKET).upload(storagePath, uploadFile, {
-  contentType: uploadFile.type,
-  upsert: true,
-});
-  if (upErr) throw new Error(upErr.message);
+    contentType: uploadFile.type,
+    upsert: true,
+  });
+  
+  if (upErr) {
+    // Clean up the metadata row if upload fails
+    await supabase.from("recipe_photos").delete().eq("id", photoId);
+    throw new Error(`Failed to upload photo: ${upErr.message}`);
+  }
 
   // Update metadata row with final storage_path
   const { data: updated, error: updErr } = await supabase

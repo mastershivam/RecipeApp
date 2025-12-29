@@ -13,6 +13,7 @@ export default function RecipeEditPage() {
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [photos, setPhotos] = useState<RecipePhoto[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   async function refresh() {
     if (!id) return;
@@ -26,6 +27,23 @@ export default function RecipeEditPage() {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIndex(null);
+      if (e.key === "ArrowLeft") {
+        setLightboxIndex((i) => (i === null ? null : (i - 1 + photos.length) % photos.length));
+      }
+      if (e.key === "ArrowRight") {
+        setLightboxIndex((i) => (i === null ? null : (i + 1) % photos.length));
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [lightboxIndex, photos.length]);
 
   const coverUrl = useMemo(() => {
     if (!recipe?.cover_photo_id) return undefined;
@@ -60,9 +78,14 @@ export default function RecipeEditPage() {
           <div className="hr" />
 
           <div className="gallery">
-            {photos.map((p) => (
+            {photos.map((p, idx) => (
               <div key={p.id} className="card" style={{ padding: 10 }}>
-                <img className="thumb" src={p.signed_url || coverUrl || "/pwa-512.png"} alt="" />
+                <img
+                  className="thumb zoomable"
+                  src={p.signed_url || coverUrl || ""}
+                  alt=""
+                  onClick={() => (p.signed_url || coverUrl) && setLightboxIndex(idx)}
+                />
                 <div className="row" style={{ marginTop: 8 }}>
                   <button
                     className={`btn ${recipe.cover_photo_id === p.id ? "primary" : ""}`}
@@ -128,6 +151,53 @@ export default function RecipeEditPage() {
           nav("/", { state: { toast: { type: "success", message: "Recipe updated." } } });
         }}
       />
+      {lightboxIndex !== null && (photos[lightboxIndex]?.signed_url || coverUrl) && (
+        <div
+          className="lightbox-overlay"
+          onClick={() => setLightboxIndex(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="lightbox-panel" onClick={(e) => e.stopPropagation()}>
+            <button className="lightbox-close" type="button" onClick={() => setLightboxIndex(null)}>
+              ✕
+            </button>
+
+            {photos.length > 1 && (
+              <>
+                <button
+                  className="lightbox-nav prev"
+                  type="button"
+                  onClick={() =>
+                    setLightboxIndex((i) =>
+                      i === null ? null : (i - 1 + photos.length) % photos.length
+                    )
+                  }
+                  aria-label="Previous photo"
+                >
+                  ‹
+                </button>
+                <button
+                  className="lightbox-nav next"
+                  type="button"
+                  onClick={() =>
+                    setLightboxIndex((i) => (i === null ? null : (i + 1) % photos.length))
+                  }
+                  aria-label="Next photo"
+                >
+                  ›
+                </button>
+              </>
+            )}
+
+            <img
+              className="lightbox-img"
+              src={(photos[lightboxIndex]?.signed_url || coverUrl) as string}
+              alt=""
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

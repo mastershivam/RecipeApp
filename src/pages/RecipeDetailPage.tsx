@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Recipe, RecipePhoto } from "../lib/types";
 import { getRecipe, deleteRecipe, updateRecipe } from "../lib/recipeService";
 import { addPhoto, deletePhoto, listPhotos } from "../lib/photoService";
-import PhotoUploader from "../ui/PhotoUploader";
+
 
 export default function RecipeDetailPage() {
   const { id } = useParams();
@@ -11,6 +11,7 @@ export default function RecipeDetailPage() {
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [photos, setPhotos] = useState<RecipePhoto[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   async function refresh() {
     if (!id) return;
@@ -24,6 +25,23 @@ export default function RecipeDetailPage() {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIndex(null);
+      if (e.key === "ArrowLeft") {
+        setLightboxIndex((i) => (i === null ? null : (i - 1 + photos.length) % photos.length));
+      }
+      if (e.key === "ArrowRight") {
+        setLightboxIndex((i) => (i === null ? null : (i + 1) % photos.length));
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [lightboxIndex, photos.length]);
 
   const coverUrl = useMemo(() => {
     if (!recipe?.cover_photo_id) return undefined;
@@ -65,12 +83,39 @@ export default function RecipeDetailPage() {
           </div>
         </div>
 
-        <img
-          className="thumb"
-          style={{ aspectRatio: "16/9" }}
-          src={coverUrl || "/pwa-512.png"}
-          alt=""
-        />
+        {(() => {
+          const coverSrc = coverUrl || photos[0]?.signed_url || "";
+          const coverIdx =
+            recipe.cover_photo_id ? photos.findIndex((p) => p.id === recipe.cover_photo_id) : 0;
+
+          return coverSrc ? (
+            <img
+              className="thumb zoomable"
+              style={{ aspectRatio: "16/9" }}
+              src={coverSrc}
+              alt=""
+              onClick={() => {
+                if (photos.length === 0) return;
+                const idx = coverIdx >= 0 ? coverIdx : 0;
+                setLightboxIndex(idx);
+              }}
+            />
+          ) : (
+            <div
+              className="thumb"
+              style={{
+                aspectRatio: "16/9",
+                display: "grid",
+                placeItems: "center",
+                border: "1px solid var(--border)",
+                borderRadius: 16,
+                background: "rgba(255, 255, 255, 0.06)",
+              }}
+            >
+              <div className="muted small">No photo yet</div>
+            </div>
+          );
+        })()}
 
         {recipe.description && <div>{recipe.description}</div>}
 
@@ -92,18 +137,7 @@ export default function RecipeDetailPage() {
         )}
       </div>
 
-      <PhotoUploader
-        isUploading={uploading}
-        onFiles={async (files) => {
-          setUploading(true);
-          try {
-            for (const f of Array.from(files)) await addPhoto(id, f);
-            await refresh();
-          } finally {
-            setUploading(false);
-          }
-        }}
-      />
+    
 
       {photos.length > 0 && (
         <div className="card stack">
@@ -112,9 +146,14 @@ export default function RecipeDetailPage() {
           <div className="hr" />
 
           <div className="gallery">
-            {photos.map((p) => (
+            {photos.map((p, idx) => (
               <div key={p.id} className="card" style={{ padding: 10 }}>
-                <img className="thumb" src={p.signed_url || "/pwa-512.png"} alt="" />
+                <img
+                  className="thumb zoomable"
+                  src={p.signed_url || ""}
+                  alt=""
+                  onClick={() => p.signed_url && setLightboxIndex(idx)}
+                />
                 <div className="row" style={{ marginTop: 8 }}>
                   <button
                     className={`btn ${recipe.cover_photo_id === p.id ? "primary" : ""}`}
@@ -164,6 +203,50 @@ export default function RecipeDetailPage() {
           ))}
         </ol>
       </div>
+
+      {lightboxIndex !== null && photos[lightboxIndex]?.signed_url && (
+        <div
+          className="lightbox-overlay"
+          onClick={() => setLightboxIndex(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="lightbox-panel" onClick={(e) => e.stopPropagation()}>
+            <button className="lightbox-close" type="button" onClick={() => setLightboxIndex(null)}>
+              ✕
+            </button>
+
+            {photos.length > 1 && (
+              <>
+                <button
+                  className="lightbox-nav prev"
+                  type="button"
+                  onClick={() =>
+                    setLightboxIndex((i) =>
+                      i === null ? null : (i - 1 + photos.length) % photos.length
+                    )
+                  }
+                  aria-label="Previous photo"
+                >
+                  ‹
+                </button>
+                <button
+                  className="lightbox-nav next"
+                  type="button"
+                  onClick={() =>
+                    setLightboxIndex((i) => (i === null ? null : (i + 1) % photos.length))
+                  }
+                  aria-label="Next photo"
+                >
+                  ›
+                </button>
+              </>
+            )}
+
+            <img className="lightbox-img" src={photos[lightboxIndex]!.signed_url!} alt="" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

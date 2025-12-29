@@ -1,3 +1,8 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 :root {
   --bg: #f8fafc;
   --text: #111827;
@@ -96,6 +101,10 @@ a { color: inherit; text-decoration: none; }
   background: var(--btn-primary-bg); color: var(--btn-primary-text); border-color: var(--btn-primary-bg);
 }
 .btn.primary:hover { background: var(--btn-primary-hover)}
+.btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .card {
   background: var(--card); border: 1px solid var(--border);
@@ -105,6 +114,10 @@ a { color: inherit; text-decoration: none; }
 }
 
 .search-input {
+  height: 56px;
+  padding: 0 18px;
+  font-size: 1.1rem;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.9);
 }
 
@@ -121,11 +134,21 @@ html[data-theme="dark"] .search-input {
 
 .input, .textarea {
   width: 100%;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 12px;
   font-size: 14px;
-  background: white;
+  background: var(--card);
+  color: var(--text);
+}
+.input:focus, .textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
+  border-color: rgba(99, 102, 241, 0.9);
+}
+html[data-theme="dark"] .input:focus,
+html[data-theme="dark"] .textarea:focus {
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.4);
 }
 .textarea { min-height: 90px; resize: vertical; }
 
@@ -133,9 +156,15 @@ html[data-theme="dark"] .search-input {
 .row > * { flex: 1; }
 .stack { display: flex; flex-direction: column; gap: 10px; }
 
-.muted { color: (var(--muted)) }
+.muted { color: var(--muted); }
 .h1 { font-size: 22px; font-weight: 900; margin: 0; }
 .h2 { font-size: 16px; font-weight: 800; margin: 0; }
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px; /* space between tags */
+}
 
 .badges .badge {
   display: inline-flex;
@@ -147,9 +176,6 @@ html[data-theme="dark"] .search-input {
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.10);
   color: var(--text);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
   cursor: pointer;
   user-select: none;
   transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.1s ease;
@@ -177,7 +203,7 @@ html[data-theme="dark"] .badge:hover {
   color: var(--btn-primary-text);
   border-color: var(--btn-primary-bg);
 }
-.hr { height: 1px; background: #e5e7eb; margin: 12px 0; }
+.hr { height: 1px; background: var(--border); margin: 12px 0; }
 
 
 .topbar .btn {
@@ -203,9 +229,9 @@ html[data-theme="dark"] .badge:hover {
   width: 100%;
   aspect-ratio: 4/3;
   border-radius: 14px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   object-fit: cover;
-  background: #f3f4f6;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .brand-text {

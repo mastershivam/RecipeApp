@@ -90,9 +90,7 @@ export default function RecipeListPage() {
     <div className="stack">
       <div className="card">
         <div className="h1">Your recipes</div>
-        <div className="muted small" style={{ marginTop: 6 }}>
-          Cloud synced — sign in anywhere.
-        </div>
+        
         <div style={{ marginTop: 12 }}>
           <input
             className="input"

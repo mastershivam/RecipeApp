@@ -22,7 +22,11 @@ function normaliseTags(s: string): string[] {
     .split(",")
     .map((x) => x.trim())
     .filter(Boolean)
-    .map((x) => x.toLowerCase());
+    .map((x) =>
+      x
+        .toLowerCase()
+        .replace(/\b\w/g, (char) => char.toUpperCase())
+    );
 }
 
 function linesFromText(s: string): RecipeLine[] {
@@ -143,7 +147,7 @@ export default function RecipeForm({
 
           <div className="row">
             <div>
-              <div className="muted small">Prep minutes</div>
+              <div className="muted small">Prep time (mins)</div>
               <input
                 className="input"
                 inputMode="numeric"
@@ -152,7 +156,7 @@ export default function RecipeForm({
               />
             </div>
             <div>
-              <div className="muted small">Cook minutes</div>
+              <div className="muted small">Cook time (mins)</div>
               <input
                 className="input"
                 inputMode="numeric"

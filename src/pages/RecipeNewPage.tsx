@@ -37,7 +37,7 @@ export default function RecipeNewPage() {
     <div className="stack">
       <PhotoUploader
         title="Photos (optional)"
-        subtitle="Pick photos now — they’ll upload after you save."
+        subtitle="Pick photos now. They’ll upload after you save."
         onFiles={addPending}
         pendingPhotos={pending}
         onRemovePending={removePending}

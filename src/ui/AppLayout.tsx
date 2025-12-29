@@ -42,7 +42,7 @@ export default function AppLayout() {
       <div className="container">
         <Outlet />
         <div className="muted small" style={{ marginTop: 18 }}>
-          Cloud-synced.
+          Cloud-synced
         </div>
       </div>
     </>

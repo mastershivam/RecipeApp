@@ -72,9 +72,9 @@ export default function LoginPage() {
           </button>
 
           {status === "sent" && (
-            <div className="card" style={{ background: "#f0fdf4", borderColor: "#bbf7d0" }}>
-              ✅ Link sent. Check your email and open the link to sign in.
-            </div>
+            <div className="toast success">
+            Link sent. Check your email and open the link to sign in.
+          </div>
           )}
 
           <button className="btn" type="button" onClick={() => nav(redirectTo)}>

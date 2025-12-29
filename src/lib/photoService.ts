@@ -55,12 +55,11 @@ export async function addPhoto(recipeId: string, file: File): Promise<RecipePhot
   const storagePath = `${userId}/${recipeId}/${photoId}.${ext}`;
 
   // Upload to storage
-  const { data: upData, error: upErr } = await supabase.storage
+  const { error: upErr } = await supabase.storage
   .from(BUCKET)
   .upload(storagePath, uploadFile, {
     contentType: uploadFile.type,
-    // IMPORTANT: remove upsert for now
-    // upsert: true,
+    
   });
 
 if (upErr) {

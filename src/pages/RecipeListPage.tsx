@@ -102,18 +102,11 @@ export default function RecipeListPage() {
       </div>
 
       {toast && (
-        <div
-          className="card"
-          style={{
-            borderColor: toast.type === "success" ? "#bbf7d0" : "#fecaca",
-            background: toast.type === "success" ? "#f0fdf4" : "#fef2f2",
-            fontWeight: 700,
-          }}
-        >
-          {toast.type === "success" ? "✅ " : "⚠️ "}
-          {toast.message}
-        </div>
-      )}
+  <div className={`toast ${toast.type}`}>
+    {toast.type === "success" ? "✅ " : "⚠️ "}
+    {toast.message}
+  </div>
+)}
 
       <TagFilter
         tags={allTags}

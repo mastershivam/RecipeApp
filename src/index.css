@@ -248,3 +248,27 @@ html[data-theme="dark"] .badge:hover {
 @media (max-width: 560px) { .gallery { grid-template-columns: repeat(2, 1fr);} }
 
 .small { font-size: 12px; }
+
+.toast {
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  font-weight: 700;
+  line-height: 1.4;
+  opacity: 1;                 /* 👈 override inherited opacity */
+}
+
+.toast * {
+  opacity: 1;                 /* 👈 force readable text */
+  color: var(--text);         /* 👈 override muted text */
+}
+
+.toast.success {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.toast.error {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.45);
+}

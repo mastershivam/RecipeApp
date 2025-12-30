@@ -90,11 +90,12 @@ export default function LoginPage() {
           <button className="btn" type="button" onClick={() => nav(redirectTo)}>
             Back
           </button>
-          <button className="btn" type="button" onClick={signInWithGoogle}>
+          <div className="muted small" style={{ textAlign: "center" }}>or</div>
+          <button className="btn primary" type="button" onClick={signInWithGoogle}>
   Continue with Google
 </button>
 
-<div className="muted small" style={{ textAlign: "center" }}>or</div>
+
         </form>
       </div>
     </div>

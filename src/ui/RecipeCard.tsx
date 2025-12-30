@@ -9,7 +9,7 @@ export default function RecipeCard({
   coverUrl?: string;
 }) {
   return (
-    <Link to={`/recipes/${recipe.id}`} className="card" style={{ display: "block" }}>
+    <Link to={`/recipes/${recipe.id}`} className="card recipe-card" style={{ display: "block" }}>
       <img className="thumb" src={coverUrl || "/pwa-512.png"} alt="" />
       <div style={{ marginTop: 10 }}>
         <div className="h2">{recipe.title}</div>

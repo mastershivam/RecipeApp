@@ -43,6 +43,15 @@ export default function RecipeListPage() {
     return Array.from(s).sort();
   }, [recipes]);
 
+  const stats = useMemo(() => {
+    const withPhotos = recipes.filter((r) => r.cover_photo_id).length;
+    return [
+      { label: "Recipes", value: recipes.length.toString().padStart(2, "0") },
+      { label: "Tags", value: allTags.length.toString().padStart(2, "0") },
+      { label: "With photos", value: withPhotos.toString().padStart(2, "0") },
+    ];
+  }, [recipes, allTags.length]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return recipes.filter((r) => {
@@ -88,25 +97,40 @@ export default function RecipeListPage() {
 
   return (
     <div className="stack">
-      <div className="card">
-        <div className="h1">Your recipes</div>
-        
-        <div style={{ marginTop: 12 }}>
-          <input
-            className="input"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search…"
-          />
+      <div className="card hero">
+        <div className="hero-content">
+          <div className="eyebrow">Taste lab</div>
+          <div className="hero-title">Your recipe vault</div>
+          <div className="muted">
+            Search, remix, and save your best ideas in one cookbook.
+          </div>
+
+          <div className="hero-search">
+            <input
+              className="input search-input"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search recipes or tags..."
+            />
+          </div>
+        </div>
+
+        <div className="stat-grid">
+          {stats.map((stat) => (
+            <div key={stat.label} className="card stat-card">
+              <div className="stat-value">{stat.value}</div>
+              <div className="stat-label">{stat.label}</div>
+            </div>
+          ))}
         </div>
       </div>
 
       {toast && (
-  <div className={`toast ${toast.type}`}>
-    {toast.type === "success" ? "✅ " : "⚠️ "}
-    {toast.message}
-  </div>
-)}
+        <div className={`toast ${toast.type}`}>
+          {toast.type === "success" ? "✅ " : "⚠️ "}
+          {toast.message}
+        </div>
+      )}
 
       <TagFilter
         tags={allTags}

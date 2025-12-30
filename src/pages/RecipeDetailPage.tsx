@@ -47,30 +47,60 @@ export default function RecipeDetailPage() {
     return photos.find((p) => p.id === recipe.cover_photo_id)?.signed_url;
   }, [recipe?.cover_photo_id, photos]);
 
-  const meta = useMemo(() => {
-    if (!recipe) return "";
+  const metaParts = useMemo(() => {
+    if (!recipe) return [];
     const parts: string[] = [];
     if (recipe.prep_minutes) parts.push(`Prep ${recipe.prep_minutes}m`);
     if (recipe.cook_minutes) parts.push(`Cook ${recipe.cook_minutes}m`);
     if (recipe.servings) parts.push(`${recipe.servings} servings`);
-    return parts.join(" · ");
+    return parts;
   }, [recipe]);
 
   if (!id) return <div className="card">Missing id</div>;
   if (!recipe) return <div className="card">Loading…</div>;
 
   return (
-    <div className="stack">
-      <div className="card stack">
-        <div className="row" style={{ alignItems: "baseline" }}>
-          <div>
-            <div className="h1">{recipe.title}</div>
-            {meta && <div className="muted small">{meta}</div>}
-          </div>
-          <div style={{ flex: 0 }} className="row">
-            <Link to={`/recipes/${id}/edit`} className="btn">Edit</Link>
+    <div className="stack detail-page">
+      <div className="card detail-hero">
+        <div className="detail-hero-copy">
+          <div className="eyebrow">Recipe</div>
+          <div className="hero-title">{recipe.title}</div>
+          {metaParts.length > 0 && (
+            <div className="meta-row">
+              {metaParts.map((part) => (
+                <span key={part} className="meta-pill">
+                  {part}
+                </span>
+              ))}
+            </div>
+          )}
+          {recipe.description && <div className="muted">{recipe.description}</div>}
+
+          {recipe.tags.length > 0 && (
+            <div className="badges detail-tags">
+              {recipe.tags.map((t) => (
+                <div key={t} className="badge">
+                  {t}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {recipe.source_url && (
+            <div className="small">
+              Source:{" "}
+              <a href={recipe.source_url} target="_blank" rel="noreferrer" className="muted">
+                {recipe.source_url}
+              </a>
+            </div>
+          )}
+
+          <div className="detail-actions">
+            <Link to={`/recipes/${id}/edit`} className="btn">
+              Edit
+            </Link>
             <button
-              className="btn"
+              className="btn danger"
               onClick={async () => {
                 if (!confirm("Delete this recipe?")) return;
                 await deleteRecipe(id);
@@ -82,61 +112,53 @@ export default function RecipeDetailPage() {
           </div>
         </div>
 
-        {(() => {
-          const coverSrc = coverUrl || photos[0]?.signed_url || "";
-          const coverIdx =
-            recipe.cover_photo_id ? photos.findIndex((p) => p.id === recipe.cover_photo_id) : 0;
+        <div className="detail-hero-media">
+          {(() => {
+            const coverSrc = coverUrl || photos[0]?.signed_url || "";
+            const coverIdx =
+              recipe.cover_photo_id ? photos.findIndex((p) => p.id === recipe.cover_photo_id) : 0;
 
-          return coverSrc ? (
-            <img
-              className="thumb zoomable"
-              style={{ aspectRatio: "16/9" }}
-              src={coverSrc}
-              alt=""
-              onClick={() => {
-                if (photos.length === 0) return;
-                const idx = coverIdx >= 0 ? coverIdx : 0;
-                setLightboxIndex(idx);
-              }}
-            />
-          ) : (
-            <div
-              className="thumb"
-              style={{
-                aspectRatio: "16/9",
-                display: "grid",
-                placeItems: "center",
-                border: "1px solid var(--border)",
-                borderRadius: 16,
-                background: "rgba(255, 255, 255, 0.06)",
-              }}
-            >
-              <div className="muted small">No photo yet</div>
-            </div>
-          );
-        })()}
-
-        {recipe.description && <div>{recipe.description}</div>}
-
-        {recipe.tags.length > 0 && (
-          <div className="badges">
-            {recipe.tags.map((t) => (
-              <div key={t} className="badge">{t}</div>
-            ))}
-          </div>
-        )}
-
-        {recipe.source_url && (
-          <div className="small">
-            Source:{" "}
-            <a href={recipe.source_url} target="_blank" rel="noreferrer" className="muted">
-              {recipe.source_url}
-            </a>
-          </div>
-        )}
+            return coverSrc ? (
+              <img
+                className="thumb zoomable detail-hero-img"
+                src={coverSrc}
+                alt=""
+                onClick={() => {
+                  if (photos.length === 0) return;
+                  const idx = coverIdx >= 0 ? coverIdx : 0;
+                  setLightboxIndex(idx);
+                }}
+              />
+            ) : (
+              <div className="detail-hero-placeholder">
+                <div className="muted small">No photo yet</div>
+              </div>
+            );
+          })()}
+        </div>
       </div>
 
-    
+      <div className="detail-grid">
+        <div className="card">
+          <div className="h2">Ingredients</div>
+          <div className="hr" />
+          <ul className="detail-list">
+            {recipe.ingredients.map((i, idx) => (
+              <li key={idx}>{i.text}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="card">
+          <div className="h2">Steps</div>
+          <div className="hr" />
+          <ol className="detail-list ordered">
+            {recipe.steps.map((s, idx) => (
+              <li key={idx}>{s.text}</li>
+            ))}
+          </ol>
+        </div>
+      </div>
 
       {photos.length > 0 && (
         <div className="card stack">
@@ -153,32 +175,11 @@ export default function RecipeDetailPage() {
                   alt=""
                   onClick={() => p.signed_url && setLightboxIndex(idx)}
                 />
-                
               </div>
             ))}
           </div>
         </div>
       )}
-
-      <div className="card">
-        <div className="h2">Ingredients</div>
-        <div className="hr" />
-        <ul style={{ margin: 0, paddingLeft: 18 }}>
-          {recipe.ingredients.map((i, idx) => (
-            <li key={idx} style={{ marginBottom: 6 }}>{i.text}</li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="card">
-        <div className="h2">Steps</div>
-        <div className="hr" />
-        <ol style={{ margin: 0, paddingLeft: 18 }}>
-          {recipe.steps.map((s, idx) => (
-            <li key={idx} style={{ marginBottom: 10 }}>{s.text}</li>
-          ))}
-        </ol>
-      </div>
 
       {lightboxIndex !== null && photos[lightboxIndex]?.signed_url && (
         <div

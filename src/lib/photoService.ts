@@ -1,26 +1,41 @@
 import { supabase } from "./supabaseClient";
 import type { RecipePhoto } from "./types";
-import heic2any from "heic2any";
-
 const BUCKET = "recipe-photos";
 
 function isHeic(file: File) {
-    const name = file.name.toLowerCase();
-    return file.type === "image/heic" || file.type === "image/heif" || name.endsWith(".heic") || name.endsWith(".heif");
+  const name = file.name.toLowerCase();
+  return (
+    file.type === "image/heic" ||
+    file.type === "image/heif" ||
+    name.endsWith(".heic") ||
+    name.endsWith(".heif")
+  );
+}
+  
+async function uploadHeicViaServer(file: File, recipeId: string, photoId: string) {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw new Error(error.message);
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Not authenticated");
+
+  const form = new FormData();
+  form.append("file", file, file.name);
+  form.append("recipeId", recipeId);
+  form.append("photoId", photoId);
+
+  const res = await fetch("/api/convert-heic", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "HEIC conversion failed.");
   }
-  
-  async function convertHeicToJpeg(file: File): Promise<File> {
-    const converted = await heic2any({
-      blob: file,
-      toType: "image/jpeg",
-      quality: 0.9,
-    });
-  
-    const blob = Array.isArray(converted) ? converted[0] : converted;
-    const newName = file.name.replace(/\.(heic|heif)$/i, ".jpg");
-  
-    return new File([blob as BlobPart], newName, { type: "image/jpeg" });
-  }
+
+  return (await res.json()) as { storagePath: string };
+}
 
 async function getUserId(): Promise<string> {
   const { data, error } = await supabase.auth.getUser();
@@ -44,38 +59,39 @@ export async function addPhoto(recipeId: string, file: File): Promise<RecipePhot
 
   const photoId = meta.id as string;
   
-  // Convert from HEIC if needed (must do this before determining extension)
-  let uploadFile = file;
+  let storagePath = "";
+
   if (isHeic(file)) {
-    uploadFile = await convertHeicToJpeg(file);
+    try {
+      const converted = await uploadHeicViaServer(file, recipeId, photoId);
+      storagePath = converted.storagePath;
+    } catch (err) {
+      await supabase.from("recipe_photos").delete().eq("id", photoId);
+      throw err;
+    }
+  } else {
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    storagePath = `${userId}/${recipeId}/${photoId}.${ext}`;
+
+    const { error: upErr } = await supabase.storage.from(BUCKET).upload(storagePath, file, {
+      contentType: file.type || "application/octet-stream",
+    });
+
+    if (upErr) {
+      console.error("Storage upload failed", {
+        message: upErr.message,
+        name: upErr.name,
+        status: (upErr as any).status,
+        bucket: BUCKET,
+        path: storagePath,
+      });
+
+      // cleanup the metadata row so you don't get orphan rows
+      await supabase.from("recipe_photos").delete().eq("id", photoId);
+
+      throw new Error(`Failed to upload file: ${upErr.message}`);
+    }
   }
-  
-  // Determine extension from the file that will actually be uploaded
-  const ext = (uploadFile.name.split(".").pop() || "jpg").toLowerCase();
-  const storagePath = `${userId}/${recipeId}/${photoId}.${ext}`;
-
-  // Upload to storage
-  const { error: upErr } = await supabase.storage
-  .from(BUCKET)
-  .upload(storagePath, uploadFile, {
-    contentType: uploadFile.type,
-    
-  });
-
-if (upErr) {
-console.error("Storage upload failed", {
-    message: upErr.message,
-    name: upErr.name,
-    status: (upErr as any).status,
-    bucket: BUCKET,
-    path: storagePath,
-});
-
-// cleanup the metadata row so you don't get orphan rows
-await supabase.from("recipe_photos").delete().eq("id", photoId);
-
-throw new Error(`Failed to upload file: ${upErr.message}`);
-}
 
   // Update metadata row with final storage_path
   const { data: updated, error: updErr } = await supabase

@@ -38,7 +38,7 @@ export default function PhotoUploader({
           <input
             ref={inputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,.heic,.heif"
             multiple
             style={{ display: "none" }}
             onChange={(e) => {

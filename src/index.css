@@ -647,6 +647,104 @@ html[data-theme="light"] .textarea::placeholder {
   place-items: center;
 }
 
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 24px;
+  padding: 32px;
+  align-items: center;
+}
+
+.login-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+}
+
+.login-title {
+  font-family: "Archivo", "Space Grotesk", sans-serif;
+  font-size: 2.6rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.login-subtitle {
+  font-size: 1rem;
+  max-width: 520px;
+}
+
+.login-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.login-feature-list {
+  display: grid;
+  gap: 10px;
+  max-width: 520px;
+}
+
+.login-feature {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.06);
+  display: grid;
+  gap: 6px;
+}
+
+.feature-pill {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.login-panel {
+  max-width: 440px;
+  justify-self: end;
+}
+
+.login-divider {
+  position: relative;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 40%;
+  height: 1px;
+  background: var(--border);
+}
+
+.login-divider::before {
+  left: 0;
+}
+
+.login-divider::after {
+  right: 0;
+}
+
+.login-divider span {
+  display: inline-block;
+  padding: 0 10px;
+  background: var(--panel);
+}
+
+.login-error {
+  color: #f87171;
+  font-weight: 700;
+}
+
 .gallery {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -818,6 +916,35 @@ html[data-theme="light"] .textarea::placeholder {
   }
 
   .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  .login-shell {
+    grid-template-columns: 1fr;
+    padding: 24px;
+  }
+
+  .login-panel {
+    justify-self: stretch;
+  }
+
+  .login-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .login-shell {
+    padding: 16px;
+  }
+
+  .login-title {
+    font-size: 2.1rem;
+  }
+
+  .login-stats {
     grid-template-columns: 1fr;
   }
 }

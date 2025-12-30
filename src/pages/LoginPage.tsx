@@ -14,6 +14,17 @@ export default function LoginPage() {
     return typeof from === "string" ? from : "/";
   }, [loc.state]);
 
+  async function signInWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin, // or `${window.location.origin}/`
+      },
+    });
+  
+    if (error) throw error;
+  }
+
   async function sendLink(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -29,8 +40,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOtp({
       email: clean,
       options: {
-        // IMPORTANT: set this to your deployed URL later (Vercel etc.)
-        // For local dev, this is fine:
+        
         emailRedirectTo: window.location.origin,
       },
     });
@@ -80,6 +90,11 @@ export default function LoginPage() {
           <button className="btn" type="button" onClick={() => nav(redirectTo)}>
             Back
           </button>
+          <button className="btn" type="button" onClick={signInWithGoogle}>
+  Continue with Google
+</button>
+
+<div className="muted small" style={{ textAlign: "center" }}>or</div>
         </form>
       </div>
     </div>

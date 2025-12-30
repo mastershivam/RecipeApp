@@ -1,73 +1,314 @@
-# React + TypeScript + Vite
+# Recipe Vault
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, full-featured recipe management application built with React, TypeScript, and Supabase. Store, organize, and manage your favorite recipes with photos, tags, and detailed cooking instructions.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Authentication**: Secure email-based authentication using Supabase Auth with magic links
+- **Recipe Management**: Create, read, update, and delete recipes with full CRUD operations
+- **Photo Support**: Upload and manage recipe photos with automatic HEIC/HEIF to JPEG conversion
+- **Tagging System**: Organize recipes with custom tags and filter by them
+- **Search**: Full-text search across recipe titles, descriptions, and tags
+- **Progressive Web App (PWA)**: Installable on mobile and desktop with offline support
+- **Modern UI**: Clean, responsive design with a focus on usability
+- **Fast Performance**: Built with Vite for lightning-fast development and optimized builds
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend Framework**: React 19 with TypeScript
+- **Build Tool**: Vite (Rolldown)
+- **Routing**: React Router v7
+- **Backend & Database**: Supabase (PostgreSQL + Storage)
+- **Authentication**: Supabase Auth
+- **PWA**: Vite PWA Plugin with Workbox
+- **Image Processing**: heic2any for HEIC/HEIF conversion
+- **Code Quality**: ESLint with TypeScript support
 
-## Expanding the ESLint configuration
+## Prerequisites
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Before you begin, ensure you have the following installed:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **Node.js** (v18 or higher recommended)
+- **npm** or **yarn** package manager
+- **Supabase Account**: You'll need a Supabase project for backend services
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Getting Started
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 1. Clone the Repository
+
+```bash
+git clone <your-repo-url>
+cd RecipeApp
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. Install Dependencies
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
+
+### 3. Set Up Supabase
+
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Go to your project settings and get your:
+   - Project URL
+   - Anon (public) key
+
+### 4. Configure Environment Variables
+
+Create a `.env` file in the root directory:
+
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+### 5. Set Up Database Schema
+
+In your Supabase SQL Editor, run the following to create the necessary tables:
+
+```sql
+-- Recipes table
+CREATE TABLE recipes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  tags TEXT[] DEFAULT '{}',
+  ingredients JSONB DEFAULT '[]',
+  steps JSONB DEFAULT '[]',
+  prep_minutes INTEGER,
+  cook_minutes INTEGER,
+  servings INTEGER,
+  source_url TEXT,
+  cover_photo_id UUID,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Recipe photos table
+CREATE TABLE recipe_photos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  storage_path TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable Row Level Security
+ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recipe_photos ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for recipes
+CREATE POLICY "Users can view their own recipes"
+  ON recipes FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own recipes"
+  ON recipes FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own recipes"
+  ON recipes FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own recipes"
+  ON recipes FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- RLS Policies for recipe_photos
+CREATE POLICY "Users can view their own photos"
+  ON recipe_photos FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own photos"
+  ON recipe_photos FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own photos"
+  ON recipe_photos FOR DELETE
+  USING (auth.uid() = user_id);
+```
+
+### 6. Set Up Storage Bucket
+
+1. Go to Storage in your Supabase dashboard
+2. Create a new bucket named `recipe-photos`
+3. Make it **private** (not public)
+4. Add the following policy:
+
+```sql
+CREATE POLICY "Users can upload their own photos"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'recipe-photos' AND
+    auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+CREATE POLICY "Users can view their own photos"
+  ON storage.objects FOR SELECT
+  USING (
+    bucket_id = 'recipe-photos' AND
+    auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+CREATE POLICY "Users can delete their own photos"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'recipe-photos' AND
+    auth.uid()::text = (storage.foldername(name))[1]
+  );
+```
+
+### 7. Run the Development Server
+
+```bash
+npm run dev
+```
+
+The app will be available at `http://localhost:5173` (or the port shown in your terminal).
+
+## Project Structure
+
+```
+RecipeApp/
+├── src/
+│   ├── auth/              # Authentication components
+│   │   ├── AuthProvider.tsx
+│   │   └── ProtectedRoute.tsx
+│   ├── lib/               # Core services and utilities
+│   │   ├── supabaseClient.ts
+│   │   ├── recipeService.ts
+│   │   ├── photoService.ts
+│   │   └── types.ts
+│   ├── pages/             # Page components
+│   │   ├── LoginPage.tsx
+│   │   ├── RecipeListPage.tsx
+│   │   ├── RecipeDetailPage.tsx
+│   │   ├── RecipeNewPage.tsx
+│   │   └── RecipeEditPage.tsx
+│   ├── ui/                # Reusable UI components
+│   │   ├── AppLayout.tsx
+│   │   ├── RecipeCard.tsx
+│   │   ├── RecipeForm.tsx
+│   │   ├── PhotoUploader.tsx
+│   │   └── TagFilter.tsx
+│   ├── App.tsx            # Main app component
+│   ├── main.tsx           # Application entry point
+│   ├── pwa.ts             # PWA initialization
+│   └── index.css          # Global styles
+├── public/                # Static assets
+├── dist/                  # Build output
+├── vite.config.ts         # Vite configuration
+├── tsconfig.json          # TypeScript configuration
+└── package.json           # Dependencies and scripts
+```
+
+## Key Features Explained
+
+### Authentication
+- Email-based magic link authentication
+- Secure session management with Supabase Auth
+- Protected routes that require authentication
+
+### Recipe Management
+- **Create**: Add new recipes with title, description, ingredients, steps, and metadata
+- **Read**: View recipe details with photos and all information
+- **Update**: Edit existing recipes
+- **Delete**: Remove recipes (cascades to photos)
+
+### Photo Management
+- Upload multiple photos per recipe
+- Automatic HEIC/HEIF to JPEG conversion for iOS compatibility
+- Private storage with signed URLs for secure access
+- Set cover photos for recipe cards
+
+### Search & Filter
+- Real-time search across titles, descriptions, and tags
+- Filter by multiple tags simultaneously
+- Clear visual feedback for active filters
+
+### Progressive Web App
+- Installable on mobile and desktop
+- Offline support with service workers
+- Auto-updating when new versions are available
+
+## Available Scripts
+
+- `npm run dev` - Start development server with hot module replacement
+- `npm run build` - Build for production (outputs to `dist/`)
+- `npm run preview` - Preview production build locally
+- `npm run lint` - Run ESLint to check code quality
+
+## Deployment
+
+### Vercel (Recommended)
+
+1. Push your code to GitHub
+2. Import your repository in Vercel
+3. Add environment variables:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+4. Deploy!
+
+### Other Platforms
+
+The app can be deployed to any static hosting service:
+- **Netlify**: Connect your repo and add environment variables
+- **GitHub Pages**: Use GitHub Actions to build and deploy
+- **Cloudflare Pages**: Connect repo and configure build settings
+
+**Important**: Update the `emailRedirectTo` in `LoginPage.tsx` to your production URL:
+
+```typescript
+emailRedirectTo: 'https://your-production-url.com'
+```
+
+## Security Notes
+
+- All data is protected by Row Level Security (RLS) policies
+- Users can only access their own recipes and photos
+- Photos are stored in private buckets with signed URLs
+- Authentication tokens are managed securely by Supabase
+
+## Troubleshooting
+
+### "Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY"
+- Ensure your `.env` file exists in the root directory
+- Check that variable names are correct (must start with `VITE_`)
+- Restart the dev server after adding environment variables
+
+### Photos not uploading
+- Verify the `recipe-photos` bucket exists in Supabase
+- Check that storage policies are correctly configured
+- Ensure the bucket is set to private
+
+### Authentication not working
+- Verify your Supabase project URL and anon key are correct
+- Check Supabase Auth settings (email templates, redirect URLs)
+- Ensure email redirect URL matches your deployment URL
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## Acknowledgments
+
+- Built with [React](https://react.dev/)
+- Powered by [Supabase](https://supabase.com/)
+- Styled with modern CSS
+- Icons and assets from various open-source projects
+
+---
+
+Made for food lovers everywhere

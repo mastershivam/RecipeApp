@@ -58,6 +58,11 @@ export default function LoginPage() {
     <div className="container" style={{ maxWidth: 520 }}>
       <div className="card stack">
         <div className="h1">Sign in</div>
+          <button className="btn primary" type="button" onClick={signInWithGoogle}>
+        Continue with Google
+        </button>
+        <div className="muted small" style={{ textAlign: "center" }}>or</div>
+
         <div className="muted small">
           We’ll email you a magic link. Open it on the device you want to use.
         </div>
@@ -92,10 +97,7 @@ export default function LoginPage() {
               Back
             </button>
           )}
-          <div className="muted small" style={{ textAlign: "center" }}>or</div>
-          <button className="btn primary" type="button" onClick={signInWithGoogle}>
-  Continue with Google
-</button>
+          
 
 
         </form>

@@ -168,13 +168,15 @@ export default function RecipeDetailPage() {
 
           <div className="gallery">
             {photos.map((p, idx) => (
-              <div key={p.id} className="card" style={{ padding: 10 }}>
-                <img
-                  className="thumb zoomable"
-                  src={p.signed_url || ""}
-                  alt=""
-                  onClick={() => p.signed_url && setLightboxIndex(idx)}
-                />
+              <div key={p.id} className="card gallery-item">
+                <div className="gallery-media">
+                  <img
+                    className="thumb zoomable"
+                    src={p.signed_url || ""}
+                    alt=""
+                    onClick={() => p.signed_url && setLightboxIndex(idx)}
+                  />
+                </div>
               </div>
             ))}
           </div>

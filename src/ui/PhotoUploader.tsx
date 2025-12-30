@@ -49,15 +49,24 @@ export default function PhotoUploader({
         </div>
       </div>
 
-      {isUploading && <div className="muted small">Uploading photos… please keep this tab open.</div>}
+      {isUploading && (
+        <div className="upload-status">
+          <div className="muted small">Uploading & converting… please keep this tab open.</div>
+          <div className="progress-track">
+            <div className="progress-bar" />
+          </div>
+        </div>
+      )}
 
       {pendingPhotos && pendingPhotos.length > 0 && (
         <>
           <div className="hr" />
           <div className="gallery">
             {pendingPhotos.map((p) => (
-              <div key={p.id} className="card" style={{ padding: 10 }}>
-                <img className="thumb" src={p.previewUrl} alt="" />
+              <div key={p.id} className="card gallery-item">
+                <div className="gallery-media">
+                  <img className="thumb" src={p.previewUrl} alt="" />
+                </div>
                 {onRemovePending && (
                   <button
                     className="btn"

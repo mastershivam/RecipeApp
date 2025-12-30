@@ -137,7 +137,27 @@ export default function RecipeDetailPage() {
           })()}
         </div>
       </div>
-
+      {photos.length > 0 && (
+        <div className="card stack">
+          <div className="h2">Gallery</div>
+          <div className="hr" />
+          <div className="gallery">
+            {photos.map((p, idx) => (
+              <div key={p.id} className="card gallery-item">
+                <div className="gallery-media">
+                  <img
+                    className="thumb zoomable"
+                    src={p.signed_url || ""}
+                    alt=""
+                    onClick={() => p.signed_url && setLightboxIndex(idx)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
       <div className="detail-grid">
         <div className="card">
           <div className="h2">Ingredients</div>
@@ -160,28 +180,7 @@ export default function RecipeDetailPage() {
         </div>
       </div>
 
-      {photos.length > 0 && (
-        <div className="card stack">
-          <div className="h2">Gallery</div>
-          <div className="muted small">Set a cover photo for the list view</div>
-          <div className="hr" />
-
-          <div className="gallery">
-            {photos.map((p, idx) => (
-              <div key={p.id} className="card gallery-item">
-                <div className="gallery-media">
-                  <img
-                    className="thumb zoomable"
-                    src={p.signed_url || ""}
-                    alt=""
-                    onClick={() => p.signed_url && setLightboxIndex(idx)}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      
 
       {lightboxIndex !== null && photos[lightboxIndex]?.signed_url && (
         <div

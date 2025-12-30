@@ -649,12 +649,16 @@ html[data-theme="light"] .textarea::placeholder {
 
 .gallery {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
 }
 
 .gallery-item {
   padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
 }
 
 .gallery-media {
@@ -672,6 +676,15 @@ html[data-theme="light"] .textarea::placeholder {
   aspect-ratio: 4 / 3;
   object-fit: cover;
   display: block;
+}
+
+.gallery-item .row {
+  flex-wrap: wrap;
+}
+
+.gallery-item .row > * {
+  min-width: 0;
+  flex: 1 1 0;
 }
 
 .upload-status {

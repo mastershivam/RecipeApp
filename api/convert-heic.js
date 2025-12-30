@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { IncomingForm } from "formidable";
 import fs from "node:fs/promises";
-import sharp from "sharp";
+import heicConvert from "heic-convert";
 
 export const config = {
   api: { bodyParser: false },
@@ -75,11 +75,15 @@ export default async function handler(req, res) {
     const storagePath = `${userId}/${recipeId}/${photoId}.jpg`;
 
     const inputBuffer = await fs.readFile(file.filepath);
-    const outputBuffer = await sharp(inputBuffer).rotate().jpeg({ quality: 90 }).toBuffer();
+    const outputBuffer = await heicConvert({
+      buffer: inputBuffer,
+      format: "JPEG",
+      quality: 0.9,
+    });
 
     const { error: uploadErr } = await supabase.storage
       .from(BUCKET)
-      .upload(storagePath, outputBuffer, {
+      .upload(storagePath, Buffer.from(outputBuffer), {
         contentType: "image/jpeg",
         upsert: true,
       });

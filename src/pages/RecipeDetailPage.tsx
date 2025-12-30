@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Recipe, RecipePhoto } from "../lib/types";
-import { getRecipe, deleteRecipe, updateRecipe } from "../lib/recipeService";
+import { getRecipe, deleteRecipe } from "../lib/recipeService";
 import { listPhotos } from "../lib/photoService";
 
 
@@ -153,19 +153,7 @@ export default function RecipeDetailPage() {
                   alt=""
                   onClick={() => p.signed_url && setLightboxIndex(idx)}
                 />
-                <div className="row" style={{ marginTop: 8 }}>
-                  <button
-                    className={`btn ${recipe.cover_photo_id === p.id ? "primary" : ""}`}
-                    onClick={async () => {
-                      await updateRecipe(id, { cover_photo_id: p.id });
-                      await refresh();
-                    }}
-                  >
-                    {recipe.cover_photo_id === p.id ? "Cover" : "Set cover"}
-                  </button>
-
-                  
-                </div>
+                
               </div>
             ))}
           </div>

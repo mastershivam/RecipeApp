@@ -4,7 +4,7 @@ A modern, full-featured recipe management application built with React, TypeScri
 
 ## Features
 
-- **Authentication**: Secure email-based authentication using Supabase Auth with magic links
+- **Authentication**: Multiple authentication methods including email magic links and Google OAuth
 - **Recipe Management**: Create, read, update, and delete recipes with full CRUD operations
 - **Photo Support**: Upload and manage recipe photos with automatic HEIC/HEIF to JPEG conversion
 - **Tagging System**: Organize recipes with custom tags and filter by them
@@ -53,6 +53,11 @@ npm install
 2. Go to your project settings and get your:
    - Project URL
    - Anon (public) key
+3. Enable Google OAuth (optional but recommended):
+   - Navigate to Authentication > Providers in your Supabase dashboard
+   - Enable the Google provider
+   - Add your Google OAuth credentials (Client ID and Client Secret)
+   - Add your site URL and redirect URLs in the Google provider settings
 
 ### 4. Configure Environment Variables
 
@@ -160,7 +165,27 @@ CREATE POLICY "Users can delete their own photos"
   );
 ```
 
-### 7. Run the Development Server
+### 7. Configure Google OAuth (Optional)
+
+If you want to enable Google authentication:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the Google+ API
+4. Create OAuth 2.0 credentials:
+   - Go to APIs & Services > Credentials
+   - Click "Create Credentials" > "OAuth client ID"
+   - Choose "Web application"
+   - Add authorized redirect URIs:
+     - `https://<your-supabase-project-ref>.supabase.co/auth/v1/callback`
+     - For local development: `http://localhost:5173` (or your dev port)
+   - Copy the Client ID and Client Secret
+5. In Supabase dashboard, go to Authentication > Providers > Google:
+   - Enable the provider
+   - Paste your Client ID and Client Secret
+   - Save the changes
+
+### 8. Run the Development Server
 
 ```bash
 npm run dev
@@ -207,7 +232,8 @@ RecipeApp/
 ## Key Features Explained
 
 ### Authentication
-- Email-based magic link authentication
+- **Email Magic Links**: Passwordless email-based authentication - users receive a secure link to sign in
+- **Google OAuth**: One-click sign-in with Google accounts for faster authentication
 - Secure session management with Supabase Auth
 - Protected routes that require authentication
 
@@ -258,11 +284,19 @@ The app can be deployed to any static hosting service:
 - **GitHub Pages**: Use GitHub Actions to build and deploy
 - **Cloudflare Pages**: Connect repo and configure build settings
 
-**Important**: Update the `emailRedirectTo` in `LoginPage.tsx` to your production URL:
+**Important**: Update the redirect URLs in `LoginPage.tsx` to your production URL:
 
 ```typescript
+// For email magic links
 emailRedirectTo: 'https://your-production-url.com'
+
+// For Google OAuth
+redirectTo: 'https://your-production-url.com'
 ```
+
+Also ensure your Supabase project has the production URL added to:
+- Authentication > URL Configuration > Site URL
+- Authentication > Providers > Google > Redirect URLs (if using Google OAuth)
 
 ## Security Notes
 
@@ -287,6 +321,8 @@ emailRedirectTo: 'https://your-production-url.com'
 - Verify your Supabase project URL and anon key are correct
 - Check Supabase Auth settings (email templates, redirect URLs)
 - Ensure email redirect URL matches your deployment URL
+- For Google OAuth: Verify Google OAuth credentials are correctly configured in Supabase
+- For Google OAuth: Ensure redirect URLs are added in both Google Cloud Console and Supabase dashboard
 
 ## Contributing
 

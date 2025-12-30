@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Recipe Archive Logo Preview</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+        background: #0f1222;
+        color: #f4f5ff;
+        display: grid;
+        min-height: 100vh;
+        place-items: center;
+      }
+      .panel {
+        background: rgba(20, 22, 42, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 18px;
+        padding: 24px;
+        display: grid;
+        gap: 16px;
+        justify-items: center;
+      }
+      img {
+        width: 256px;
+        height: 256px;
+      }
+      button {
+        background: linear-gradient(120deg, #7d6bff, #4cc9f0);
+        border: none;
+        color: #0f1222;
+        font-weight: 700;
+        padding: 10px 16px;
+        border-radius: 12px;
+        cursor: pointer;
+      }
+      a {
+        color: #b8bbd8;
+        text-decoration: none;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <img id="logo" src="/recipe-archive-logo.svg" alt="Recipe Archive logo" />
+      <button id="download" type="button">Download PNG</button>
+      <a href="/recipe-archive-logo.svg">View SVG</a>
+      <canvas id="canvas" width="512" height="512" style="display:none"></canvas>
+    </div>
+    <script>
+      const img = document.getElementById("logo");
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const button = document.getElementById("download");
+
+      function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      }
+
+      img.addEventListener("load", render);
+      button.addEventListener("click", () => {
+        render();
+        const link = document.createElement("a");
+        link.download = "recipe-archive-logo.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      });
+    </script>
+  </body>
+</html>

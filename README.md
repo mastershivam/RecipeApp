@@ -1,6 +1,6 @@
-# Recipe App
+# Recipe Archive
 
-A modern, full-featured recipe management application built with React, TypeScript, and Supabase. Store, organize, and manage your favorite recipes with photos, tags, and detailed cooking instructions.
+Recipe Archive is a modern, full-featured recipe management application built with React, TypeScript, and Supabase. Store, organize, and manage your favorite recipes with photos, tags, and detailed cooking instructions.
 
 ## Features
 
@@ -10,7 +10,7 @@ A modern, full-featured recipe management application built with React, TypeScri
 - **Tagging System**: Organize recipes with custom tags and filter by them
 - **Search**: Full-text search across recipe titles, descriptions, and tags
 - **Progressive Web App (PWA)**: Installable on mobile and desktop with offline support
-- **Modern UI**: Clean, responsive design with a focus on usability
+- **Modern UI**: Cinematic, responsive design with a focus on usability
 - **Fast Performance**: Built with Vite for lightning-fast development and optimized builds
 
 ## Tech Stack
@@ -21,7 +21,8 @@ A modern, full-featured recipe management application built with React, TypeScri
 - **Backend & Database**: Supabase (PostgreSQL + Storage)
 - **Authentication**: Supabase Auth
 - **PWA**: Vite PWA Plugin with Workbox
-- **Image Processing**: heic2any for HEIC/HEIF conversion
+- **Serverless**: Vercel Functions for HEIC conversion and landing-page stats
+- **Image Processing**: heic-convert (server-side HEIC/HEIF conversion)
 - **Code Quality**: ESLint with TypeScript support
 
 ## Prerequisites
@@ -38,8 +39,9 @@ Before you begin, ensure you have the following installed:
 
 ```bash
 git clone <your-repo-url>
-cd RecipeApp
+cd RecipeArchive
 ```
+If your local folder name differs, adjust the `cd` command accordingly.
 
 ### 2. Install Dependencies
 
@@ -66,7 +68,9 @@ Create a `.env` file in the root directory:
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
+`SUPABASE_SERVICE_ROLE_KEY` is used by serverless endpoints only. Do not expose it to the client.
 
 ### 5. Set Up Database Schema
 
@@ -188,15 +192,15 @@ If you want to enable Google authentication:
 ### 8. Run the Development Server
 
 ```bash
-npm run dev
+vercel dev
 ```
 
-The app will be available at `http://localhost:5173` (or the port shown in your terminal).
+`vercel dev` runs the Vite frontend and the serverless API routes together. The app will be available at `http://localhost:5173` (or the port shown in your terminal).
 
 ## Project Structure
 
 ```
-RecipeApp/
+RecipeArchive/
 ├── src/
 │   ├── auth/              # Authentication components
 │   │   ├── AuthProvider.tsx
@@ -261,7 +265,8 @@ RecipeApp/
 
 ## Available Scripts
 
-- `npm run dev` - Start development server with hot module replacement
+- `vercel dev` - Run Vite + serverless API routes together (recommended for local)
+- `npm run dev` - Start Vite dev server only (no `/api` routes)
 - `npm run build` - Build for production (outputs to `dist/`)
 - `npm run preview` - Preview production build locally
 - `npm run lint` - Run ESLint to check code quality
@@ -275,6 +280,7 @@ RecipeApp/
 3. Add environment variables:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
 4. Deploy!
 
 ### Other Platforms
@@ -316,6 +322,7 @@ Also ensure your Supabase project has the production URL added to:
 - Verify the `recipe-photos` bucket exists in Supabase
 - Check that storage policies are correctly configured
 - Ensure the bucket is set to private
+- If uploading HEIC, confirm the `/api/convert-heic` function is deployed and `SUPABASE_SERVICE_ROLE_KEY` is set
 
 ### Authentication not working
 - Verify your Supabase project URL and anon key are correct

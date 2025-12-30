@@ -33,14 +33,17 @@ export default function AppLayout() {
       <aside className="sidebar">
         <Link to="/" className="brand" aria-label="Home">
           <span className="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 48 48" role="img" focusable="false">
-              <path d="M10 12h18l4 4v20H10z" />
-              <path d="M16 18h10M16 24h7M16 30h10" />
-              <path d="M36 14h4v20h-4" />
-              <path d="M36 18h4M36 24h4M36 30h4" />
+            <svg viewBox="0 0 64 64" role="img" focusable="false">
+              <path d="M18 10c-4 4 4 6 0 10" />
+              <path d="M30 8c-4 4 4 6 0 10" />
+              <path d="M42 10c-4 4 4 6 0 10" />
+              <path d="M14 48V22h16c6 0 10 4 10 9s-4 9-10 9H14" />
+              <path d="M30 40l10 8" />
+              <path d="M44 48l6-18 6 18" />
+              <path d="M47 40h6" />
             </svg>
           </span>
-          <span className="brand-text">Recipe Lab</span>
+          <span className="brand-text">Recipe Archive</span>
         </Link>
 
         <div className="nav">

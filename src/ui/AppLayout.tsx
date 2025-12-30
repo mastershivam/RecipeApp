@@ -20,7 +20,7 @@ export default function AppLayout() {
       <div className="topbar">
         <div className="topbar-inner">
           <Link to="/" className="brand" aria-label="Home">
-            <span className="brand-text">Recipe Vault</span>
+            <span className="brand-text">Recipe App</span>
           </Link>
 
           <div className="row" style={{ flex: 0, gap: 8 }}>

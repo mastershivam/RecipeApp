@@ -8,9 +8,9 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
-        name: "Recipe Vault",
-        short_name: "RecipeVault",
-        description: "Local-only recipe tracker with photos",
+        name: "Recipe App",
+        short_name: "RecipeApp",
+        description: "Recipe tracker with photos",
         theme_color: "#111827",
         background_color: "#ffffff",
         display: "standalone",

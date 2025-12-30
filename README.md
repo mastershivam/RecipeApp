@@ -1,4 +1,4 @@
-# Recipe Vault
+# Recipe App
 
 A modern, full-featured recipe management application built with React, TypeScript, and Supabase. Store, organize, and manage your favorite recipes with photos, tags, and detailed cooking instructions.
 

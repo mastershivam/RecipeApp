@@ -73,14 +73,21 @@ export default async function handler(req, res) {
       return;
     }
 
-    const { data: target, error: targetErr } = await supabase.auth.admin.getUserByEmail(email);
-    if (targetErr || !target?.user) {
+    const { data: usersData, error: targetErr } = await supabase.auth.admin.listUsers();
+    if (targetErr) {
+      res.statusCode = 500;
+      res.end("Failed to lookup user.");
+      return;
+    }
+
+    const targetUser = usersData.users.find((u) => u.email?.toLowerCase() === email);
+    if (!targetUser) {
       res.statusCode = 404;
       res.end("User not found.");
       return;
     }
 
-    if (target.user.id === ownerId) {
+    if (targetUser.id === ownerId) {
       res.statusCode = 400;
       res.end("You already own this recipe.");
       return;
@@ -92,7 +99,7 @@ export default async function handler(req, res) {
         {
           recipe_id: recipeId,
           owner_id: ownerId,
-          shared_with: target.user.id,
+          shared_with: targetUser.id,
           permission,
         },
         { onConflict: "recipe_id,shared_with" }

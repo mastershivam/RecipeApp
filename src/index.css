@@ -392,8 +392,19 @@ html[data-theme="light"] .brand-mark svg {
   color: var(--text);
 }
 
+.select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: rgba(10, 12, 28, 0.65);
+  color: var(--text);
+}
+
 html[data-theme="light"] .input,
-html[data-theme="light"] .textarea {
+html[data-theme="light"] .textarea,
+html[data-theme="light"] .select {
   background: rgba(255, 255, 255, 0.8);
 }
 

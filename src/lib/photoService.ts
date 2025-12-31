@@ -1,6 +1,9 @@
 import { supabase } from "./supabaseClient";
 import type { RecipePhoto } from "./types";
 const BUCKET = "recipe-photos";
+const SIGNED_URL_TTL_MS = 55 * 60 * 1000;
+const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+const photoCache = new Map<string, RecipePhoto>();
 
 function isHeic(file: File) {
   const name = file.name.toLowerCase();
@@ -121,11 +124,8 @@ export async function listPhotos(recipeId: string): Promise<RecipePhoto[]> {
   const signed = await Promise.all(
     photos.map(async (p) => {
       if (!p.storage_path) return p;
-      const { data: s, error: sErr } = await supabase.storage
-        .from(BUCKET)
-        .createSignedUrl(p.storage_path, 60 * 60); // 1 hour
-      if (sErr) return p;
-      return { ...p, signed_url: s.signedUrl };
+      const signedUrl = await getSignedUrlCached(p.storage_path);
+      return signedUrl ? { ...p, signed_url: signedUrl } : p;
     })
   );
 
@@ -142,4 +142,33 @@ export async function deletePhoto(photo: RecipePhoto) {
   // Delete metadata row
   const { error } = await supabase.from("recipe_photos").delete().eq("id", photo.id);
   if (error) throw new Error(error.message);
+}
+
+export async function getCoverUrlByPhotoId(photoId: string): Promise<string | undefined> {
+  const cached = photoCache.get(photoId);
+  if (cached?.storage_path) {
+    const signedUrl = await getSignedUrlCached(cached.storage_path);
+    return signedUrl ?? undefined;
+  }
+
+  const { data, error } = await supabase.from("recipe_photos").select("*").eq("id", photoId).single();
+  if (error) throw new Error(error.message);
+  const photo = data as RecipePhoto;
+  photoCache.set(photoId, photo);
+  if (!photo.storage_path) return undefined;
+  return (await getSignedUrlCached(photo.storage_path)) ?? undefined;
+}
+
+async function getSignedUrlCached(storagePath: string): Promise<string | null> {
+  const now = Date.now();
+  const cached = signedUrlCache.get(storagePath);
+  if (cached && cached.expiresAt > now) return cached.url;
+
+  const { data: s, error: sErr } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(storagePath, 60 * 60);
+  if (sErr || !s?.signedUrl) return null;
+
+  signedUrlCache.set(storagePath, { url: s.signedUrl, expiresAt: now + SIGNED_URL_TTL_MS });
+  return s.signedUrl;
 }

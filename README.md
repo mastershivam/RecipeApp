@@ -7,6 +7,7 @@ Recipe Archive is a modern, full-featured recipe management application built wi
 - **Authentication**: Multiple authentication methods including email magic links and Google OAuth
 - **Recipe Management**: Create, read, update, and delete recipes with full CRUD operations
 - **Photo Support**: Upload and manage recipe photos with automatic HEIC/HEIF to JPEG conversion
+- **Sharing**: Invite signed-in users to view or edit recipes in a shared cookbook view
 - **Tagging System**: Organize recipes with custom tags and filter by them
 - **Search**: Full-text search across recipe titles, descriptions, and tags
 - **Progressive Web App (PWA)**: Installable on mobile and desktop with offline support
@@ -21,7 +22,7 @@ Recipe Archive is a modern, full-featured recipe management application built wi
 - **Backend & Database**: Supabase (PostgreSQL + Storage)
 - **Authentication**: Supabase Auth
 - **PWA**: Vite PWA Plugin with Workbox
-- **Serverless**: Vercel Functions for HEIC conversion and landing-page stats
+- **Serverless**: Vercel Functions for HEIC conversion, sharing, and landing-page stats
 - **Image Processing**: heic-convert (server-side HEIC/HEIF conversion)
 - **Code Quality**: ESLint with TypeScript support
 
@@ -107,6 +108,20 @@ CREATE TABLE recipe_photos (
 -- Enable Row Level Security
 ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE recipe_photos ENABLE ROW LEVEL SECURITY;
+-- New: shared recipes
+CREATE TYPE share_permission AS ENUM ('view', 'edit');
+
+CREATE TABLE recipe_shares (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  shared_with UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  permission share_permission NOT NULL DEFAULT 'view',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (recipe_id, shared_with)
+);
+
+ALTER TABLE recipe_shares ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for recipes
 CREATE POLICY "Users can view their own recipes"
@@ -125,6 +140,23 @@ CREATE POLICY "Users can delete their own recipes"
   ON recipes FOR DELETE
   USING (auth.uid() = user_id);
 
+CREATE POLICY "Shared users can view recipes"
+  ON recipes FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM recipe_shares s
+    WHERE s.recipe_id = recipes.id
+      AND s.shared_with = auth.uid()
+  ));
+
+CREATE POLICY "Shared users can edit recipes"
+  ON recipes FOR UPDATE
+  USING (EXISTS (
+    SELECT 1 FROM recipe_shares s
+    WHERE s.recipe_id = recipes.id
+      AND s.shared_with = auth.uid()
+      AND s.permission = 'edit'
+  ));
+
 -- RLS Policies for recipe_photos
 CREATE POLICY "Users can view their own photos"
   ON recipe_photos FOR SELECT
@@ -137,6 +169,23 @@ CREATE POLICY "Users can insert their own photos"
 CREATE POLICY "Users can delete their own photos"
   ON recipe_photos FOR DELETE
   USING (auth.uid() = user_id);
+
+CREATE POLICY "Shared users can view photos"
+  ON recipe_photos FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM recipe_shares s
+    WHERE s.recipe_id = recipe_photos.recipe_id
+      AND s.shared_with = auth.uid()
+  ));
+
+CREATE POLICY "Owners can manage shares"
+  ON recipe_shares FOR ALL
+  USING (auth.uid() = owner_id)
+  WITH CHECK (auth.uid() = owner_id);
+
+CREATE POLICY "Shared users can view shares"
+  ON recipe_shares FOR SELECT
+  USING (auth.uid() = shared_with);
 ```
 
 ### 6. Set Up Storage Bucket
@@ -159,6 +208,18 @@ CREATE POLICY "Users can view their own photos"
   USING (
     bucket_id = 'recipe-photos' AND
     auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+CREATE POLICY "Shared users can view shared photos"
+  ON storage.objects FOR SELECT
+  USING (
+    bucket_id = 'recipe-photos' AND
+    EXISTS (
+      SELECT 1
+      FROM recipe_shares s
+      WHERE s.recipe_id::text = (storage.foldername(name))[2]
+        AND s.shared_with = auth.uid()
+    )
   );
 
 CREATE POLICY "Users can delete their own photos"

@@ -3,18 +3,21 @@ import { useNavigate, useParams } from "react-router-dom";
 import RecipeForm from "../ui/RecipeForm";
 import PhotoUploader from "../ui/PhotoUploader";
 import type { Recipe, RecipePhoto } from "../lib/types";
-import { getRecipe, updateRecipe } from "../lib/recipeService";
+import { getRecipe, updateRecipe, getSharePermission, type SharePermission } from "../lib/recipeService";
 import { addPhoto, deletePhoto, listPhotos } from "../lib/photoService";
+import { useAuth } from "../auth/AuthProvider";
 
 export default function RecipeEditPage() {
   const { id } = useParams();
   const nav = useNavigate();
+  const { user } = useAuth();
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [photos, setPhotos] = useState<RecipePhoto[]>([]);
   const [uploading, setUploading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [sharePermission, setSharePermission] = useState<SharePermission | null>(null);
 
   async function refresh() {
     if (!id) return;
@@ -28,6 +31,28 @@ export default function RecipeEditPage() {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    if (!id || !user) return;
+    if (recipe && recipe.user_id === user.id) {
+      setSharePermission("edit");
+      return;
+    }
+
+    let cancelled = false;
+    async function loadPermission() {
+      try {
+        const perm = await getSharePermission(id);
+        if (!cancelled) setSharePermission(perm);
+      } catch {
+        if (!cancelled) setSharePermission(null);
+      }
+    }
+    loadPermission();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, user, recipe]);
 
   useEffect(() => {
     if (lightboxIndex === null) return;
@@ -53,6 +78,23 @@ export default function RecipeEditPage() {
 
   if (!id) return <div className="card">Missing id</div>;
   if (!recipe) return <div className="card">Loading…</div>;
+
+  const isOwner = user?.id === recipe.user_id;
+  const canEdit = isOwner || sharePermission === "edit";
+
+  if (!canEdit) {
+    return (
+      <div className="card stack">
+        <div className="h2">View-only access</div>
+        <div className="muted small">
+          You can view this recipe but don't have permission to edit it.
+        </div>
+        <button className="btn" type="button" onClick={() => nav(`/recipes/${id}`)}>
+          Back to recipe
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="stack">

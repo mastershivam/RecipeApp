@@ -1,16 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Recipe, RecipePhoto } from "../lib/types";
-import { getRecipe, deleteRecipe } from "../lib/recipeService";
+import { getRecipe, deleteRecipe, getSharePermission, type SharePermission } from "../lib/recipeService";
 import { listPhotos } from "../lib/photoService";
+import { useAuth } from "../auth/AuthProvider";
 
 
 export default function RecipeDetailPage() {
   const { id } = useParams();
   const nav = useNavigate();
+  const { user, session } = useAuth();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [photos, setPhotos] = useState<RecipePhoto[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [sharePermission, setSharePermission] = useState<SharePermission | null>(null);
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareAccess, setShareAccess] = useState<SharePermission>("view");
+  const [shareStatus, setShareStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [shareError, setShareError] = useState<string>("");
 
   async function refresh() {
     if (!id) return;
@@ -24,6 +31,29 @@ export default function RecipeDetailPage() {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    if (!id || !user) return;
+    if (recipe && recipe.user_id === user.id) {
+      setSharePermission("edit");
+      return;
+    }
+
+    let cancelled = false;
+    async function loadPermission() {
+      if (!id) return;
+      try {
+        const perm = await getSharePermission(id);
+        if (!cancelled) setSharePermission(perm);
+      } catch {
+        if (!cancelled) setSharePermission(null);
+      }
+    }
+    loadPermission();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, user, recipe]);
 
   useEffect(() => {
     if (lightboxIndex === null) return;
@@ -58,6 +88,46 @@ export default function RecipeDetailPage() {
 
   if (!id) return <div className="card">Missing id</div>;
   if (!recipe) return <div className="card">Loading…</div>;
+
+  const isOwner = user?.id === recipe.user_id;
+  const canEdit = isOwner || sharePermission === "edit";
+
+  async function shareRecipe() {
+    if (!id) return;
+    const email = shareEmail.trim();
+    if (!email) {
+      setShareError("Enter an email to share with.");
+      setShareStatus("error");
+      return;
+    }
+    if (!session?.access_token) {
+      setShareError("You're not signed in.");
+      setShareStatus("error");
+      return;
+    }
+
+    setShareStatus("sending");
+    setShareError("");
+
+    const res = await fetch("/api/share-recipe", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ recipeId: id, email, permission: shareAccess }),
+    });
+
+    if (!res.ok) {
+      const msg = await res.text();
+      setShareError(msg || "Share failed.");
+      setShareStatus("error");
+      return;
+    }
+
+    setShareStatus("success");
+    setShareEmail("");
+  }
 
   return (
     <div className="stack detail-page">
@@ -96,19 +166,23 @@ export default function RecipeDetailPage() {
           )}
 
           <div className="detail-actions">
-            <Link to={`/recipes/${id}/edit`} className="btn">
-              Edit
-            </Link>
-            <button
-              className="btn danger"
-              onClick={async () => {
-                if (!confirm("Delete this recipe?")) return;
-                await deleteRecipe(id);
-                nav("/");
-              }}
-            >
-              Delete
-            </button>
+            {canEdit && (
+              <Link to={`/recipes/${id}/edit`} className="btn">
+                Edit
+              </Link>
+            )}
+            {isOwner && (
+              <button
+                className="btn danger"
+                onClick={async () => {
+                  if (!confirm("Delete this recipe?")) return;
+                  await deleteRecipe(id);
+                  nav("/");
+                }}
+              >
+                Delete
+              </button>
+            )}
           </div>
         </div>
 
@@ -137,6 +211,37 @@ export default function RecipeDetailPage() {
           })()}
         </div>
       </div>
+
+      {isOwner && (
+        <div className="card stack">
+          <div className="h2">Share recipe</div>
+          <div className="muted small">
+            Invite someone to view or edit this recipe. They must have an account.
+          </div>
+          <div className="row">
+            <input
+              className="input"
+              placeholder="friend@example.com"
+              value={shareEmail}
+              onChange={(e) => setShareEmail(e.target.value)}
+              type="email"
+            />
+            <select
+              className="select"
+              value={shareAccess}
+              onChange={(e) => setShareAccess(e.target.value as SharePermission)}
+            >
+              <option value="view">View only</option>
+              <option value="edit">Can edit</option>
+            </select>
+          </div>
+          {shareError && <div className="toast error">{shareError}</div>}
+          {shareStatus === "success" && <div className="toast success">Invite sent.</div>}
+          <button className="btn primary" onClick={shareRecipe} disabled={shareStatus === "sending"}>
+            {shareStatus === "sending" ? "Sharing…" : "Share"}
+          </button>
+        </div>
+      )}
       {photos.length > 0 && (
         <div className="card stack">
           <div className="h2">Gallery</div>

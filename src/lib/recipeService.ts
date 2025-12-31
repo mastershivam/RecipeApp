@@ -1,6 +1,9 @@
 import { supabase } from "./supabaseClient";
 import type { Recipe } from "./types";
 
+export type SharePermission = "view" | "edit";
+export type SharedRecipe = { recipe: Recipe; permission: SharePermission };
+
 export async function listRecipes(): Promise<Recipe[]> {
   const { data, error } = await supabase
     .from("recipes")
@@ -9,6 +12,40 @@ export async function listRecipes(): Promise<Recipe[]> {
 
   if (error) throw new Error(error.message);
   return (data ?? []) as Recipe[];
+}
+
+export async function listSharedRecipes(): Promise<SharedRecipe[]> {
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  if (userErr) throw new Error(userErr.message);
+  const user = userData.user;
+  if (!user) throw new Error("Not authenticated");
+
+  const { data, error } = await supabase
+    .from("recipe_shares")
+    .select("permission, recipes(*)")
+    .eq("shared_with", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return (data ?? [])
+    .map((row: any) => ({ recipe: row.recipes as Recipe, permission: row.permission as SharePermission }))
+    .filter((row: SharedRecipe) => !!row.recipe);
+}
+
+export async function getSharePermission(recipeId: string): Promise<SharePermission | null> {
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  if (userErr) throw new Error(userErr.message);
+  const user = userData.user;
+  if (!user) throw new Error("Not authenticated");
+
+  const { data, error } = await supabase
+    .from("recipe_shares")
+    .select("permission")
+    .eq("recipe_id", recipeId)
+    .eq("shared_with", user.id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data?.permission as SharePermission) ?? null;
 }
 
 export async function getRecipe(id: string): Promise<Recipe | null> {

@@ -294,6 +294,62 @@ RecipeArchive/
 └── package.json           # Dependencies and scripts
 ```
 
+## Architecture Diagram
+
+```mermaid
+flowchart TB
+  subgraph Client[Client: Recipe Archive (React + Vite)]
+    UI[UI Components\n(AppLayout, Pages, Forms)]
+    AuthCtx[AuthProvider\n(Session + User)]
+    Data[Services Layer\n(recipeService, photoService)]
+    PWA[PWA + Cache\n(service worker)]
+  end
+
+  subgraph APIs[Vercel Serverless API]
+    ShareAPI[/share-recipe\nshare-list\nshare-update\nshare-delete/]
+    HeicAPI[/convert-heic/]
+    StatsAPI[/stats/]
+  end
+
+  subgraph Supabase[Supabase]
+    Auth[Auth\n(Google OAuth, Magic Link)]
+    DB[(Postgres\nrecipes, recipe_photos, recipe_shares)]
+    Storage[(Storage\nrecipe-photos bucket)]
+  end
+
+  subgraph Dev[Dev Tooling]
+    Vite[Vite Dev Server]
+    VercelDev[Vercel Dev\n(API + Vite)]
+    ESLint[ESLint]
+    TS[TypeScript]
+  end
+
+  UI --> AuthCtx
+  UI --> Data
+  UI --> PWA
+  AuthCtx --> Auth
+  Data --> DB
+  Data --> Storage
+  Data --> Auth
+
+  UI --> ShareAPI
+  UI --> HeicAPI
+  UI --> StatsAPI
+
+  ShareAPI --> DB
+  ShareAPI --> Auth
+  HeicAPI --> Storage
+  HeicAPI --> Auth
+  StatsAPI --> DB
+
+  Vite --> UI
+  VercelDev --> ShareAPI
+  VercelDev --> HeicAPI
+  VercelDev --> StatsAPI
+  ESLint --> UI
+  TS --> UI
+```
+
 ## Key Features Explained
 
 ### Authentication

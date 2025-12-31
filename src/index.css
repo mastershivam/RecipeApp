@@ -199,6 +199,17 @@ html[data-theme="light"] .brand-mark svg {
   backdrop-filter: blur(16px);
 }
 
+.topbar .btn {
+  height: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
 .page-title {
   font-family: "Archivo", "Space Grotesk", sans-serif;
   font-size: 1.5rem;

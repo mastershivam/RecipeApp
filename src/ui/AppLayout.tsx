@@ -110,7 +110,7 @@ export default function AppLayout() {
             )}
             {loc.pathname !== "/recipes/new" && (
               <Link to="/recipes/new" className="btn primary">
-                + New recipe
+                New Recipe
               </Link>
             )}
           </div>

@@ -5,7 +5,7 @@ import PhotoUploader from "../ui/PhotoUploader";
 import type { Recipe, RecipePhoto } from "../lib/types";
 import { getRecipe, updateRecipe, getSharePermission, type SharePermission } from "../lib/recipeService";
 import { addPhoto, deletePhoto, listPhotos, invalidatePhotoCache } from "../lib/photoService";
-import { useAuth } from "../auth/AuthProvider";
+import { useAuth } from "../auth/UseAuth.ts";
 
 export default function RecipeEditPage() {
   const { id } = useParams();

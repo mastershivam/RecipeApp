@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Recipe, RecipePhoto } from "../lib/types";
 import { getRecipe, deleteRecipe, getSharePermission, type SharePermission } from "../lib/recipeService";
 import { listPhotos } from "../lib/photoService";
-import { useAuth } from "../auth/AuthProvider";
+import { useAuth } from "../auth/UseAuth.ts";
 
 
 export default function RecipeDetailPage() {

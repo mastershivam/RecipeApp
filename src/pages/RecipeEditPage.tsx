@@ -41,6 +41,7 @@ export default function RecipeEditPage() {
 
     let cancelled = false;
     async function loadPermission() {
+      if (!id) return;
       try {
         const perm = await getSharePermission(id);
         if (!cancelled) setSharePermission(perm);

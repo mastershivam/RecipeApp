@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Recipe } from "../lib/types";
 import { listRecipes } from "../lib/recipeService";
 import { getCoverUrlByPhotoId } from "../lib/photoService";
@@ -13,6 +13,7 @@ export default function RecipeListPage() {
   const [query, setQuery] = useState("");
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [coverUrls, setCoverUrls] = useState<CoverMap>({});
+  const coverIdsRef = useRef<Record<string, string | null>>({});
 
   const loc = useLocation();
   const nav = useNavigate();
@@ -26,6 +27,29 @@ export default function RecipeListPage() {
   useEffect(() => {
     refresh();
   }, []);
+
+  useEffect(() => {
+    const nextIds: Record<string, string | null> = {};
+    let changed = false;
+    for (const r of recipes) {
+      nextIds[r.id] = r.cover_photo_id ?? null;
+      if (coverIdsRef.current[r.id] !== undefined && coverIdsRef.current[r.id] !== nextIds[r.id]) {
+        changed = true;
+      }
+    }
+    if (changed) {
+      setCoverUrls((prev) => {
+        const next = { ...prev };
+        for (const r of recipes) {
+          if (coverIdsRef.current[r.id] !== undefined && coverIdsRef.current[r.id] !== nextIds[r.id]) {
+            delete next[r.id];
+          }
+        }
+        return next;
+      });
+    }
+    coverIdsRef.current = nextIds;
+  }, [recipes]);
 
   useEffect(() => {
     const t = (loc.state as any)?.toast;

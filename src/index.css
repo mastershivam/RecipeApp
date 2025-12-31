@@ -786,6 +786,18 @@ html[data-theme="light"] .textarea::placeholder {
   align-items: center;
 }
 
+.segmented {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.segmented .btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;

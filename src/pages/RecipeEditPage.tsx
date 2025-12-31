@@ -4,7 +4,7 @@ import RecipeForm from "../ui/RecipeForm";
 import PhotoUploader from "../ui/PhotoUploader";
 import type { Recipe, RecipePhoto } from "../lib/types";
 import { getRecipe, updateRecipe, getSharePermission, type SharePermission } from "../lib/recipeService";
-import { addPhoto, deletePhoto, listPhotos } from "../lib/photoService";
+import { addPhoto, deletePhoto, listPhotos, invalidatePhotoCache } from "../lib/photoService";
 import { useAuth } from "../auth/AuthProvider";
 
 export default function RecipeEditPage() {
@@ -159,8 +159,11 @@ export default function RecipeEditPage() {
                     <div className="row" style={{ marginTop: 8 }}>
                       <button
                         className={`btn ${recipe.cover_photo_id === p.id ? "primary" : ""}`}
-                        onClick={async () => {
+                      onClick={async () => {
+                          const prevCover = recipe.cover_photo_id;
                           await updateRecipe(id, { cover_photo_id: p.id });
+                          if (prevCover) invalidatePhotoCache(prevCover);
+                          invalidatePhotoCache(p.id);
                           await refresh();
                         }}
                       >
@@ -169,13 +172,14 @@ export default function RecipeEditPage() {
 
                       <button
                         className="btn danger"
-                        onClick={async () => {
-                          if (!confirm("Delete this photo?")) return;
-                          const deletingCover = recipe.cover_photo_id === p.id;
-                          await deletePhoto(p);
-                          if (deletingCover) await updateRecipe(id, { cover_photo_id: null });
-                          await refresh();
-                        }}
+                    onClick={async () => {
+                      if (!confirm("Delete this photo?")) return;
+                      const deletingCover = recipe.cover_photo_id === p.id;
+                      await deletePhoto(p);
+                      invalidatePhotoCache(p.id);
+                      if (deletingCover) await updateRecipe(id, { cover_photo_id: null });
+                      await refresh();
+                    }}
                       >
                         Delete
                       </button>

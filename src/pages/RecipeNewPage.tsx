@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { v4 as uuid } from "uuid";
 import RecipeForm from "../ui/RecipeForm";
 import PhotoUploader from "../ui/PhotoUploader";
-import { addPhoto } from "../lib/photoService";
+import { addPhoto, invalidatePhotoCache } from "../lib/photoService";
 import { createRecipe, updateRecipe } from "../lib/recipeService";
 
 type PendingPhoto = { id: string; file: File; previewUrl: string };
@@ -111,9 +111,10 @@ export default function RecipeNewPage() {
             }
           }
 
-            if (firstPhotoId) {
-              await updateRecipe(recipe.id, { cover_photo_id: firstPhotoId });
-            }
+          if (firstPhotoId) {
+            await updateRecipe(recipe.id, { cover_photo_id: firstPhotoId });
+            invalidatePhotoCache(firstPhotoId);
+          }
 
             nav("/", { state: { toast: { type: "success", message: "Recipe saved." } } });
           }}

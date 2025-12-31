@@ -117,7 +117,7 @@ export default function AppLayout() {
         </div>
 
         <div className="content">
-          <Outlet />
+          <Outlet key={loc.pathname} />
           <div className="muted small footer-note">Cloud-synced</div>
         </div>
       </main>

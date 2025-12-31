@@ -159,6 +159,12 @@ export async function getCoverUrlByPhotoId(photoId: string): Promise<string | un
   return (await getSignedUrlCached(photo.storage_path)) ?? undefined;
 }
 
+export function invalidatePhotoCache(photoId: string) {
+  const cached = photoCache.get(photoId);
+  if (cached?.storage_path) signedUrlCache.delete(cached.storage_path);
+  photoCache.delete(photoId);
+}
+
 async function getSignedUrlCached(storagePath: string): Promise<string | null> {
   const now = Date.now();
   const cached = signedUrlCache.get(storagePath);

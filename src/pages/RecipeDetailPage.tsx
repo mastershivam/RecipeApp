@@ -18,6 +18,11 @@ export default function RecipeDetailPage() {
   const [shareAccess, setShareAccess] = useState<SharePermission>("view");
   const [shareStatus, setShareStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [shareError, setShareError] = useState<string>("");
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const [shareList, setShareList] = useState<
+    { id: string; email: string; permission: SharePermission }[]
+  >([]);
+  const [shareOpen, setShareOpen] = useState(false);
 
   async function refresh() {
     if (!id) return;
@@ -56,6 +61,39 @@ export default function RecipeDetailPage() {
   }, [id, user, recipe]);
 
   useEffect(() => {
+    const onOpen = () => {
+      if (user && recipe?.user_id === user.id) setShareOpen(true);
+    };
+    window.addEventListener("open-share-modal", onOpen);
+    return () => window.removeEventListener("open-share-modal", onOpen);
+  }, [user, recipe]);
+
+  useEffect(() => {
+    if (!id || !session?.access_token || !user || !recipe) return;
+    if (recipe.user_id !== user.id) return;
+    let cancelled = false;
+
+    async function loadShares() {
+      if (!session?.access_token) return;
+      try {
+        const res = await fetch(`/api/share-list?recipeId=${id}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { shares: { id: string; email: string; permission: SharePermission }[] };
+        if (!cancelled) setShareList(data.shares ?? []);
+      } catch {
+        // Ignore share list errors for now.
+      }
+    }
+
+    loadShares();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, session?.access_token, user, recipe]);
+
+  useEffect(() => {
     if (lightboxIndex === null) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -86,11 +124,18 @@ export default function RecipeDetailPage() {
     return parts;
   }, [recipe]);
 
+  const isOwner = !!(user && recipe && user.id === recipe.user_id);
+  const canEdit = isOwner || sharePermission === "edit";
+
+  useEffect(() => {
+    if (!recipe) return;
+    window.dispatchEvent(
+      new CustomEvent("share-permission", { detail: { canShare: isOwner } })
+    );
+  }, [isOwner, recipe]);
+
   if (!id) return <div className="card">Missing id</div>;
   if (!recipe) return <div className="card">Loading…</div>;
-
-  const isOwner = user?.id === recipe.user_id;
-  const canEdit = isOwner || sharePermission === "edit";
 
   async function shareRecipe() {
     if (!id) return;
@@ -108,6 +153,7 @@ export default function RecipeDetailPage() {
 
     setShareStatus("sending");
     setShareError("");
+    setShareNotice(null);
 
     const res = await fetch("/api/share-recipe", {
       method: "POST",
@@ -125,8 +171,67 @@ export default function RecipeDetailPage() {
       return;
     }
 
+    const payload = await res.json();
+    if (payload?.share) {
+      setShareList((prev) => {
+        const existing = prev.filter((s) => s.id !== payload.share.id);
+        return [...existing, payload.share].sort((a, b) => a.email.localeCompare(b.email));
+      });
+    }
+
     setShareStatus("success");
+    setShareNotice("Invite sent.");
     setShareEmail("");
+  }
+
+  async function updateShare(idToUpdate: string, permission: SharePermission) {
+    if (!id || !session?.access_token) return;
+    setShareError("");
+    setShareNotice(null);
+    const res = await fetch("/api/share-update", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ shareId: idToUpdate, permission }),
+    });
+
+    if (!res.ok) {
+      const msg = await res.text();
+      setShareError(msg || "Update failed.");
+      setShareStatus("error");
+      return;
+    }
+
+    setShareList((prev) =>
+      prev.map((s) => (s.id === idToUpdate ? { ...s, permission } : s))
+    );
+    setShareNotice("Access updated.");
+  }
+
+  async function revokeShare(idToDelete: string) {
+    if (!session?.access_token) return;
+    setShareError("");
+    setShareNotice(null);
+    const res = await fetch("/api/share-delete", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ shareId: idToDelete }),
+    });
+
+    if (!res.ok) {
+      const msg = await res.text();
+      setShareError(msg || "Revoke failed.");
+      setShareStatus("error");
+      return;
+    }
+
+    setShareList((prev) => prev.filter((s) => s.id !== idToDelete));
+    setShareNotice("Access revoked.");
   }
 
   return (
@@ -212,34 +317,80 @@ export default function RecipeDetailPage() {
         </div>
       </div>
 
-      {isOwner && (
-        <div className="card stack">
-          <div className="h2">Share recipe</div>
-          <div className="muted small">
-            Invite someone to view or edit this recipe. They must have an account.
+      {isOwner && shareOpen && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <div className="h2">Share recipe</div>
+                <div className="muted small">
+                  Invite someone to view or edit this recipe. They must have an account.
+                </div>
+              </div>
+              <button className="btn ghost" type="button" onClick={() => setShareOpen(false)}>
+                Close
+              </button>
+            </div>
+
+            <div className="stack">
+              <div className="row">
+                <input
+                  className="input"
+                  placeholder="friend@example.com"
+                  value={shareEmail}
+                  onChange={(e) => setShareEmail(e.target.value)}
+                  type="email"
+                />
+                <select
+                  className="select"
+                  value={shareAccess}
+                  onChange={(e) => setShareAccess(e.target.value as SharePermission)}
+                >
+                  <option value="view">View only</option>
+                  <option value="edit">Can edit</option>
+                </select>
+              </div>
+              {shareError && <div className="toast error">{shareError}</div>}
+              {shareNotice && <div className="toast success">{shareNotice}</div>}
+              <button className="btn primary" onClick={shareRecipe} disabled={shareStatus === "sending"}>
+                {shareStatus === "sending" ? "Sharing…" : "Share"}
+              </button>
+            </div>
+
+            <div className="hr" />
+
+            <div className="stack">
+              <div className="h2">Shared with</div>
+              {shareList.length === 0 ? (
+                <div className="muted small">No one yet.</div>
+              ) : (
+                <div className="share-list">
+                  {shareList.map((share) => (
+                    <div key={share.id} className="share-row">
+                      <div className="share-email">{share.email}</div>
+                      <div className="share-actions">
+                        <select
+                          className="select"
+                          value={share.permission}
+                          onChange={(e) => updateShare(share.id, e.target.value as SharePermission)}
+                        >
+                          <option value="view">View</option>
+                          <option value="edit">Edit</option>
+                        </select>
+                        <button
+                          className="btn danger"
+                          type="button"
+                          onClick={() => revokeShare(share.id)}
+                        >
+                          Revoke
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <div className="row">
-            <input
-              className="input"
-              placeholder="friend@example.com"
-              value={shareEmail}
-              onChange={(e) => setShareEmail(e.target.value)}
-              type="email"
-            />
-            <select
-              className="select"
-              value={shareAccess}
-              onChange={(e) => setShareAccess(e.target.value as SharePermission)}
-            >
-              <option value="view">View only</option>
-              <option value="edit">Can edit</option>
-            </select>
-          </div>
-          {shareError && <div className="toast error">{shareError}</div>}
-          {shareStatus === "success" && <div className="toast success">Invite sent.</div>}
-          <button className="btn primary" onClick={shareRecipe} disabled={shareStatus === "sending"}>
-            {shareStatus === "sending" ? "Sharing…" : "Share"}
-          </button>
         </div>
       )}
       {photos.length > 0 && (

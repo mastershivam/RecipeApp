@@ -38,13 +38,12 @@ export default async function handler(req, res) {
     return;
   }
 
-  const recipeId = payload?.recipeId;
-  const email = String(payload?.email || "").trim().toLowerCase();
+  const shareId = payload?.shareId;
   const permission = payload?.permission === "edit" ? "edit" : "view";
 
-  if (!recipeId || !email) {
+  if (!shareId) {
     res.statusCode = 400;
-    res.end("Missing recipeId or email.");
+    res.end("Missing shareId.");
     return;
   }
 
@@ -61,62 +60,41 @@ export default async function handler(req, res) {
     }
 
     const ownerId = authData.user.id;
-    const recipeRes = await supabase.from("recipes").select("id,user_id").eq("id", recipeId).single();
-    if (recipeRes.error || !recipeRes.data) {
-      res.statusCode = 404;
-      res.end("Recipe not found.");
-      return;
-    }
-    if (recipeRes.data.user_id !== ownerId) {
-      res.statusCode = 403;
-      res.end("Only the owner can share this recipe.");
-      return;
-    }
-
-    const { data: usersData, error: targetErr } = await supabase.auth.admin.listUsers();
-    if (targetErr) {
-      res.statusCode = 500;
-      res.end("Failed to lookup user.");
-      return;
-    }
-
-    const targetUser = usersData.users.find((u) => u.email?.toLowerCase() === email);
-    if (!targetUser) {
-      res.statusCode = 404;
-      res.end("User not found.");
-      return;
-    }
-
-    if (targetUser.id === ownerId) {
-      res.statusCode = 400;
-      res.end("You already own this recipe.");
-      return;
-    }
-
     const { data: share, error: shareErr } = await supabase
       .from("recipe_shares")
-      .upsert(
-        {
-          recipe_id: recipeId,
-          owner_id: ownerId,
-          shared_with: targetUser.id,
-          permission,
-        },
-        { onConflict: "recipe_id,shared_with" }
-      )
-      .select("*")
+      .select("id,recipe_id,owner_id")
+      .eq("id", shareId)
       .single();
 
-    if (shareErr) {
+    if (shareErr || !share) {
+      res.statusCode = 404;
+      res.end("Share not found.");
+      return;
+    }
+
+    if (share.owner_id !== ownerId) {
+      res.statusCode = 403;
+      res.end("Only the owner can update shares.");
+      return;
+    }
+
+    const { data: updated, error: updErr } = await supabase
+      .from("recipe_shares")
+      .update({ permission })
+      .eq("id", shareId)
+      .select("id,permission")
+      .single();
+
+    if (updErr || !updated) {
       res.statusCode = 500;
-      res.end(shareErr.message);
+      res.end(updErr?.message || "Failed to update share.");
       return;
     }
 
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ share: { id: share.id, email: target.user.email, permission: share.permission } }));
+    res.end(JSON.stringify(updated));
   } catch (err) {
     res.statusCode = 500;
-    res.end(err instanceof Error ? err.message : "Failed to share recipe.");
+    res.end(err instanceof Error ? err.message : "Failed to update share.");
   }
 }

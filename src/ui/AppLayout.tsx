@@ -25,9 +25,25 @@ export default function AppLayout() {
     return "Recipe library";
   }, [loc.pathname]);
 
+  const [canShare, setCanShare] = useState(false);
+
   const isLibrary =
     loc.pathname === "/" ||
     (loc.pathname.startsWith("/recipes/") && loc.pathname !== "/recipes/new");
+  const isDetail = loc.pathname.startsWith("/recipes/") && !loc.pathname.endsWith("/edit");
+
+  useEffect(() => {
+    function onSharePermission(e: Event) {
+      const detail = (e as CustomEvent).detail;
+      setCanShare(Boolean(detail?.canShare));
+    }
+    window.addEventListener("share-permission", onSharePermission);
+    return () => window.removeEventListener("share-permission", onSharePermission);
+  }, []);
+
+  useEffect(() => {
+    if (!isDetail) setCanShare(false);
+  }, [isDetail]);
 
   return (
     <div className="app-shell">
@@ -83,6 +99,15 @@ export default function AppLayout() {
           </div>
 
           <div className="row" style={{ flex: 0, gap: 8 }}>
+            {isDetail && canShare && (
+              <button
+                className="btn"
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent("open-share-modal"))}
+              >
+                Share
+              </button>
+            )}
             {loc.pathname !== "/recipes/new" && (
               <Link to="/recipes/new" className="btn primary">
                 + New recipe

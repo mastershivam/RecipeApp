@@ -20,6 +20,7 @@ export default function AppLayout() {
   const pageTitle = useMemo(() => {
     if (loc.pathname === "/recipes/new") return "Create recipe";
     if (loc.pathname === "/shared") return "Shared with you";
+    if (loc.pathname === "/groups") return "Groups";
     if (loc.pathname.endsWith("/edit")) return "Edit recipe";
     if (loc.pathname.startsWith("/recipes/")) return "Recipe details";
     return "Recipe library";
@@ -70,6 +71,9 @@ export default function AppLayout() {
           </Link>
           <Link className={`nav-item ${loc.pathname === "/shared" ? "active" : ""}`} to="/shared">
             Shared with you
+          </Link>
+          <Link className={`nav-item ${loc.pathname === "/groups" ? "active" : ""}`} to="/groups">
+            Groups
           </Link>
           <Link className={`nav-item ${loc.pathname === "/recipes/new" ? "active" : ""}`} to="/recipes/new">
             New recipe

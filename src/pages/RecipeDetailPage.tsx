@@ -4,6 +4,13 @@ import type { Recipe, RecipePhoto } from "../lib/types";
 import { getRecipe, deleteRecipe, getSharePermission, type SharePermission } from "../lib/recipeService";
 import { listPhotos } from "../lib/photoService";
 import { useAuth } from "../auth/UseAuth.ts";
+import {
+  listGroupAdmins,
+  listGroupShares,
+  revokeGroupShare,
+  shareRecipeToGroup,
+  updateGroupShare,
+} from "../lib/groupService";
 
 
 export default function RecipeDetailPage() {
@@ -22,6 +29,12 @@ export default function RecipeDetailPage() {
   const [shareList, setShareList] = useState<
     { id: string; email: string; permission: SharePermission }[]
   >([]);
+  const [groupShares, setGroupShares] = useState<
+    { id: string; groupId: string; groupName: string; permission: SharePermission }[]
+  >([]);
+  const [groupOptions, setGroupOptions] = useState<{ id: string; name: string }[]>([]);
+  const [groupShareId, setGroupShareId] = useState("");
+  const [groupShareAccess, setGroupShareAccess] = useState<SharePermission>("view");
   const [shareOpen, setShareOpen] = useState(false);
   const [scale, setScale] = useState(1);
   const [unitMode, setUnitMode] = useState<"auto" | "imperial" | "metric">("auto");
@@ -94,6 +107,48 @@ export default function RecipeDetailPage() {
       cancelled = true;
     };
   }, [id, session?.access_token, user, recipe]);
+
+  useEffect(() => {
+    if (!id || !user || !recipe) return;
+    if (recipe.user_id !== user.id) return;
+    let cancelled = false;
+
+    async function loadGroupShares() {
+      try {
+        const data = await listGroupShares(id);
+        if (!cancelled) setGroupShares(data.shares ?? []);
+      } catch {
+        // Ignore group share list errors for now.
+      }
+    }
+
+    loadGroupShares();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, user, recipe]);
+
+  useEffect(() => {
+    if (!shareOpen || !user || !recipe) return;
+    if (recipe.user_id !== user.id) return;
+    let cancelled = false;
+
+    async function loadGroupOptions() {
+      try {
+        const adminGroups = await listGroupAdmins();
+        if (!cancelled) {
+          setGroupOptions(adminGroups.map((g) => ({ id: g.id, name: g.name })));
+        }
+      } catch {
+        // Ignore group list errors for now.
+      }
+    }
+
+    loadGroupOptions();
+    return () => {
+      cancelled = true;
+    };
+  }, [shareOpen, user, recipe]);
 
   useEffect(() => {
     if (lightboxIndex === null) return;
@@ -246,6 +301,61 @@ export default function RecipeDetailPage() {
     setShareNotice("Access revoked.");
   }
 
+  async function shareGroup() {
+    if (!id) return;
+    if (!groupShareId) {
+      setShareError("Pick a group to share with.");
+      setShareStatus("error");
+      return;
+    }
+
+    setShareStatus("sending");
+    setShareError("");
+    setShareNotice(null);
+
+    try {
+      const payload = await shareRecipeToGroup(id, groupShareId, groupShareAccess);
+      if (payload?.share) {
+        setGroupShares((prev) => {
+          const existing = prev.filter((s) => s.id !== payload.share.id);
+          return [...existing, payload.share].sort((a, b) => a.groupName.localeCompare(b.groupName));
+        });
+      }
+      setShareStatus("success");
+      setShareNotice("Group shared.");
+      setGroupShareId("");
+    } catch (err) {
+      setShareError(err instanceof Error ? err.message : "Share failed.");
+      setShareStatus("error");
+    }
+  }
+
+  async function updateGroupShareAccess(idToUpdate: string, permission: SharePermission) {
+    setShareError("");
+    setShareNotice(null);
+    try {
+      await updateGroupShare(idToUpdate, permission);
+      setGroupShares((prev) => prev.map((s) => (s.id === idToUpdate ? { ...s, permission } : s)));
+      setShareNotice("Group access updated.");
+    } catch (err) {
+      setShareError(err instanceof Error ? err.message : "Update failed.");
+      setShareStatus("error");
+    }
+  }
+
+  async function revokeGroup(idToDelete: string) {
+    setShareError("");
+    setShareNotice(null);
+    try {
+      await revokeGroupShare(idToDelete);
+      setGroupShares((prev) => prev.filter((s) => s.id !== idToDelete));
+      setShareNotice("Group access revoked.");
+    } catch (err) {
+      setShareError(err instanceof Error ? err.message : "Revoke failed.");
+      setShareStatus("error");
+    }
+  }
+
   return (
     <div className="stack detail-page">
       <div className="card detail-hero">
@@ -336,7 +446,7 @@ export default function RecipeDetailPage() {
               <div>
                 <div className="h2">Share recipe</div>
                 <div className="muted small">
-                  Invite someone to view or edit this recipe. They must have an account.
+                  Invite someone or a group to view or edit this recipe. They must have an account.
                 </div>
               </div>
               <button className="btn ghost" type="button" onClick={() => setShareOpen(false)}>
@@ -345,6 +455,60 @@ export default function RecipeDetailPage() {
             </div>
 
             <div className="stack">
+              <div className="h2">Share with group</div>
+              <div className="row">
+                <select
+                  className="select"
+                  value={groupShareId}
+                  onChange={(e) => setGroupShareId(e.target.value)}
+                >
+                  <option value="">Select group</option>
+                  {groupOptions.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="select"
+                  value={groupShareAccess}
+                  onChange={(e) => setGroupShareAccess(e.target.value as SharePermission)}
+                >
+                  <option value="view">View only</option>
+                  <option value="edit">Can edit</option>
+                </select>
+                <button className="btn" onClick={shareGroup} disabled={shareStatus === "sending"}>
+                  {shareStatus === "sending" ? "Sharing…" : "Share group"}
+                </button>
+              </div>
+
+              <div className="share-list">
+                {groupShares.length === 0 ? (
+                  <div className="muted small">No groups yet.</div>
+                ) : (
+                  groupShares.map((share) => (
+                    <div key={share.id} className="share-row">
+                      <div className="share-email">{share.groupName}</div>
+                      <div className="share-actions">
+                        <select
+                          className="select"
+                          value={share.permission}
+                          onChange={(e) => updateGroupShareAccess(share.id, e.target.value as SharePermission)}
+                        >
+                          <option value="view">View</option>
+                          <option value="edit">Edit</option>
+                        </select>
+                        <button className="btn danger" type="button" onClick={() => revokeGroup(share.id)}>
+                          Revoke
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="hr" />
+
               <div className="row">
                 <input
                   className="input"

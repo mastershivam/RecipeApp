@@ -7,6 +7,7 @@ import RecipeNewPage from "./pages/RecipeNewPage";
 import RecipeDetailPage from "./pages/RecipeDetailPage";
 import RecipeEditPage from "./pages/RecipeEditPage";
 import SharedRecipesPage from "./pages/SharedRecipesPage";
+import GroupsPage from "./pages/GroupsPage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import { AuthProvider } from "./auth/AuthProvider";
@@ -25,6 +26,7 @@ const router = createBrowserRouter([
         children: [
           { path: "/", element: <RecipeListPage /> },
           { path: "/shared", element: <SharedRecipesPage /> },
+          { path: "/groups", element: <GroupsPage /> },
           { path: "/recipes/new", element: <RecipeNewPage /> },
           { path: "/recipes/:id", element: <RecipeDetailPage /> },
           { path: "/recipes/:id/edit", element: <RecipeEditPage /> },

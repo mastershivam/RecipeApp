@@ -8,7 +8,9 @@
 ## Next
 - Recently cooked + Favorites sections on the home dashboard.
 - Import/export (PDF/Markdown + common recipe formats).
+- AI recipe import.
 - Cook Mode (step-by-step focus + timers).
+- Recipe change log (history/audit trail).
 - Server-side full-text search (Supabase tsvector).
 - Tag autocomplete/suggestions.
 - Paginated/infinite recipe list and gallery.

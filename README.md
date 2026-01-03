@@ -110,6 +110,8 @@ ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE recipe_photos ENABLE ROW LEVEL SECURITY;
 -- New: shared recipes
 CREATE TYPE share_permission AS ENUM ('view', 'edit');
+CREATE TYPE group_role AS ENUM ('owner', 'admin', 'member');
+CREATE TYPE group_member_status AS ENUM ('pending', 'accepted', 'declined');
 
 CREATE TABLE recipe_shares (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -121,7 +123,38 @@ CREATE TABLE recipe_shares (
   UNIQUE (recipe_id, shared_with)
 );
 
+CREATE TABLE groups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE group_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  role group_role NOT NULL DEFAULT 'member',
+  status group_member_status NOT NULL DEFAULT 'pending',
+  invited_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (group_id, user_id)
+);
+
+CREATE TABLE recipe_group_shares (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+  owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  permission share_permission NOT NULL DEFAULT 'view',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (recipe_id, group_id)
+);
+
 ALTER TABLE recipe_shares ENABLE ROW LEVEL SECURITY;
+ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE group_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recipe_group_shares ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for recipes
 CREATE POLICY "Users can view their own recipes"
@@ -146,6 +179,13 @@ CREATE POLICY "Shared users can view recipes"
     SELECT 1 FROM recipe_shares s
     WHERE s.recipe_id = recipes.id
       AND s.shared_with = auth.uid()
+  ) OR EXISTS (
+    SELECT 1
+    FROM recipe_group_shares gs
+    JOIN group_members gm ON gm.group_id = gs.group_id
+    WHERE gs.recipe_id = recipes.id
+      AND gm.user_id = auth.uid()
+      AND gm.status = 'accepted'
   ));
 
 CREATE POLICY "Shared users can edit recipes"
@@ -155,6 +195,14 @@ CREATE POLICY "Shared users can edit recipes"
     WHERE s.recipe_id = recipes.id
       AND s.shared_with = auth.uid()
       AND s.permission = 'edit'
+  ) OR EXISTS (
+    SELECT 1
+    FROM recipe_group_shares gs
+    JOIN group_members gm ON gm.group_id = gs.group_id
+    WHERE gs.recipe_id = recipes.id
+      AND gm.user_id = auth.uid()
+      AND gm.status = 'accepted'
+      AND gs.permission = 'edit'
   ));
 
 -- RLS Policies for recipe_photos
@@ -176,6 +224,13 @@ CREATE POLICY "Shared users can view photos"
     SELECT 1 FROM recipe_shares s
     WHERE s.recipe_id = recipe_photos.recipe_id
       AND s.shared_with = auth.uid()
+  ) OR EXISTS (
+    SELECT 1
+    FROM recipe_group_shares gs
+    JOIN group_members gm ON gm.group_id = gs.group_id
+    WHERE gs.recipe_id = recipe_photos.recipe_id
+      AND gm.user_id = auth.uid()
+      AND gm.status = 'accepted'
   ));
 
 CREATE POLICY "Owners can manage shares"
@@ -186,6 +241,74 @@ CREATE POLICY "Owners can manage shares"
 CREATE POLICY "Shared users can view shares"
   ON recipe_shares FOR SELECT
   USING (auth.uid() = shared_with);
+
+CREATE POLICY "Users can view their groups"
+  ON groups FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM group_members gm
+    WHERE gm.group_id = groups.id
+      AND gm.user_id = auth.uid()
+      AND gm.status IN ('accepted', 'pending')
+  ));
+
+CREATE POLICY "Owners can manage groups"
+  ON groups FOR UPDATE
+  USING (auth.uid() = owner_id)
+  WITH CHECK (auth.uid() = owner_id);
+
+CREATE POLICY "Owners can delete groups"
+  ON groups FOR DELETE
+  USING (auth.uid() = owner_id);
+
+CREATE POLICY "Members can view group members"
+  ON group_members FOR SELECT
+  USING (
+    auth.uid() = user_id OR EXISTS (
+      SELECT 1 FROM group_members gm
+      WHERE gm.group_id = group_members.group_id
+        AND gm.user_id = auth.uid()
+        AND gm.status = 'accepted'
+    )
+  );
+
+CREATE POLICY "Members can respond to invites"
+  ON group_members FOR UPDATE
+  USING (auth.uid() = user_id AND status = 'pending')
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Admins can manage members"
+  ON group_members FOR UPDATE
+  USING (EXISTS (
+    SELECT 1 FROM group_members gm
+    WHERE gm.group_id = group_members.group_id
+      AND gm.user_id = auth.uid()
+      AND gm.status = 'accepted'
+      AND gm.role IN ('owner', 'admin')
+  ));
+
+CREATE POLICY "Admins can remove members"
+  ON group_members FOR DELETE
+  USING (EXISTS (
+    SELECT 1 FROM group_members gm
+    WHERE gm.group_id = group_members.group_id
+      AND gm.user_id = auth.uid()
+      AND gm.status = 'accepted'
+      AND gm.role IN ('owner', 'admin')
+  ));
+
+CREATE POLICY "Members can view group shares"
+  ON recipe_group_shares FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM group_members gm
+    WHERE gm.group_id = recipe_group_shares.group_id
+      AND gm.user_id = auth.uid()
+      AND gm.status = 'accepted'
+  ));
+
+CREATE POLICY "Owners can manage group shares"
+  ON recipe_group_shares FOR ALL
+  USING (auth.uid() = owner_id)
+  WITH CHECK (auth.uid() = owner_id);
 ```
 
 ### 6. Set Up Storage Bucket
@@ -213,12 +336,21 @@ CREATE POLICY "Users can view their own photos"
 CREATE POLICY "Shared users can view shared photos"
   ON storage.objects FOR SELECT
   USING (
-    bucket_id = 'recipe-photos' AND
-    EXISTS (
-      SELECT 1
-      FROM recipe_shares s
-      WHERE s.recipe_id::text = (storage.foldername(name))[2]
-        AND s.shared_with = auth.uid()
+    bucket_id = 'recipe-photos' AND (
+      EXISTS (
+        SELECT 1
+        FROM recipe_shares s
+        WHERE s.recipe_id::text = (storage.foldername(name))[2]
+          AND s.shared_with = auth.uid()
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM recipe_group_shares gs
+        JOIN group_members gm ON gm.group_id = gs.group_id
+        WHERE gs.recipe_id::text = (storage.foldername(name))[2]
+          AND gm.user_id = auth.uid()
+          AND gm.status = 'accepted'
+      )
     )
   );
 

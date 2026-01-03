@@ -3,6 +3,11 @@ import type { Recipe } from "./types";
 
 export type SharePermission = "view" | "edit";
 export type SharedRecipe = { recipe: Recipe; permission: SharePermission };
+type PermissionRank = 0 | 1;
+
+function permissionScore(permission: SharePermission): PermissionRank {
+  return permission === "edit" ? 1 : 0;
+}
 
 export async function listRecipes(): Promise<Recipe[]> {
   const { data, error } = await supabase
@@ -27,9 +32,46 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
-  return (data ?? [])
-    .map((row: any) => ({ recipe: row.recipes as Recipe, permission: row.permission as SharePermission }))
-    .filter((row: SharedRecipe) => !!row.recipe);
+  const { data: memberRows, error: memberErr } = await supabase
+    .from("group_members")
+    .select("group_id")
+    .eq("user_id", user.id)
+    .eq("status", "accepted");
+
+  if (memberErr) throw new Error(memberErr.message);
+  const groupIds = (memberRows ?? []).map((row: any) => row.group_id);
+
+  let groupData: any[] = [];
+  if (groupIds.length > 0) {
+    const { data: shares, error: groupErr } = await supabase
+      .from("recipe_group_shares")
+      .select("permission, recipes(*)")
+      .in("group_id", groupIds)
+      .order("created_at", { ascending: false });
+
+    if (groupErr) throw new Error(groupErr.message);
+    groupData = shares ?? [];
+  }
+
+  const merged = new Map<string, SharedRecipe>();
+  (data ?? []).forEach((row: any) => {
+    if (!row.recipes) return;
+    merged.set(row.recipes.id, {
+      recipe: row.recipes as Recipe,
+      permission: row.permission as SharePermission,
+    });
+  });
+
+  (groupData ?? []).forEach((row: any) => {
+    if (!row.recipes) return;
+    const existing = merged.get(row.recipes.id);
+    const permission = row.permission as SharePermission;
+    if (!existing || permissionScore(permission) > permissionScore(existing.permission)) {
+      merged.set(row.recipes.id, { recipe: row.recipes as Recipe, permission });
+    }
+  });
+
+  return Array.from(merged.values()).filter((row) => !!row.recipe);
 }
 
 export async function getSharePermission(recipeId: string): Promise<SharePermission | null> {
@@ -45,7 +87,32 @@ export async function getSharePermission(recipeId: string): Promise<SharePermiss
     .eq("shared_with", user.id)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return (data?.permission as SharePermission) ?? null;
+  const direct = (data?.permission as SharePermission) ?? null;
+  if (direct) return direct;
+
+  const { data: memberRows, error: memberErr } = await supabase
+    .from("group_members")
+    .select("group_id")
+    .eq("user_id", user.id)
+    .eq("status", "accepted");
+
+  if (memberErr) throw new Error(memberErr.message);
+  const groupIds = (memberRows ?? []).map((row: any) => row.group_id);
+  if (groupIds.length === 0) return null;
+
+  const { data: groupShare, error: groupErr } = await supabase
+    .from("recipe_group_shares")
+    .select("permission")
+    .eq("recipe_id", recipeId)
+    .in("group_id", groupIds)
+    .order("created_at", { ascending: false });
+
+  if (groupErr) throw new Error(groupErr.message);
+  return (groupShare ?? []).reduce<SharePermission | null>((acc, row: any) => {
+    const permission = row.permission as SharePermission;
+    if (!acc) return permission;
+    return permissionScore(permission) > permissionScore(acc) ? permission : acc;
+  }, null);
 }
 
 export async function getRecipe(id: string): Promise<Recipe | null> {

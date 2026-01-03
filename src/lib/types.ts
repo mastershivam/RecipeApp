@@ -25,3 +25,23 @@ export type RecipePhoto = {
   created_at: string;
   signed_url?: string; // computed client-side
 };
+
+export type GroupRole = "owner" | "admin" | "member";
+export type GroupMemberStatus = "pending" | "accepted" | "declined";
+
+export type Group = {
+  id: string;
+  name: string;
+  owner_id: string;
+  created_at: string;
+};
+
+export type GroupMember = {
+  id: string;
+  group_id: string;
+  user_id: string;
+  role: GroupRole;
+  status: GroupMemberStatus;
+  invited_by?: string | null;
+  created_at: string;
+};

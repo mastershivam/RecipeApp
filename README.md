@@ -526,11 +526,12 @@ flowchart TB
 
 1. Push your code to GitHub
 2. Import your repository in Vercel
-3. Add environment variables:
+3. Ensure `vercel.json` is included so `/api/*` rewrites to the bundled API handler
+4. Add environment variables:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
-4. Deploy!
+5. Deploy!
 
 ### Other Platforms
 

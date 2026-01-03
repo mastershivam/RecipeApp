@@ -3,20 +3,6 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { getRecipe } from "../lib/recipeService";
 import type { Recipe } from "../lib/types";
 
-type WakeLockSentinel = {
-  released: boolean;
-  release: () => Promise<void>;
-  addEventListener?: (type: "release", listener: () => void) => void;
-};
-
-declare global {
-  interface Navigator {
-    wakeLock?: {
-      request: (type: "screen") => Promise<WakeLockSentinel>;
-    };
-  }
-}
-
 export default function CookModePage() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -45,7 +31,7 @@ export default function CookModePage() {
 
     async function requestLock() {
       try {
-        sentinel = await navigator.wakeLock!.request("screen");
+        sentinel = await navigator.wakeLock.request("screen");
         if (!cancelled) setWakeActive(true);
         sentinel.addEventListener?.("release", () => {
           if (!cancelled) setWakeActive(false);
@@ -76,16 +62,17 @@ export default function CookModePage() {
 
   if (!id) return <div className="card">Missing id</div>;
   if (!recipe) return <div className="card">Loading…</div>;
+  const recipeId = id;
   if (stepCount === 0) {
     return (
       <div className="card stack cook-empty">
         <div className="h2">No steps yet</div>
         <div className="muted">Add steps to enable Cook Mode.</div>
         <div className="row" style={{ flex: 0 }}>
-          <button className="btn" onClick={() => nav(`/recipes/${id}/edit`)}>
+          <button className="btn" onClick={() => nav(`/recipes/${recipeId}/edit`)}>
             Edit recipe
           </button>
-          <Link className="btn ghost" to={`/recipes/${id}`}>
+          <Link className="btn ghost" to={`/recipes/${recipeId}`}>
             Back
           </Link>
         </div>

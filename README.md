@@ -242,14 +242,41 @@ CREATE POLICY "Shared users can view shares"
   ON recipe_shares FOR SELECT
   USING (auth.uid() = shared_with);
 
-CREATE POLICY "Users can view their groups"
-  ON groups FOR SELECT
-  USING (EXISTS (
+-- Helper functions to avoid RLS recursion
+CREATE OR REPLACE FUNCTION is_group_member(p_group_id uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
     SELECT 1 FROM group_members gm
-    WHERE gm.group_id = groups.id
+    WHERE gm.group_id = p_group_id
       AND gm.user_id = auth.uid()
       AND gm.status IN ('accepted', 'pending')
-  ));
+  );
+$$;
+ALTER FUNCTION is_group_member(uuid) SET row_security = off;
+
+CREATE OR REPLACE FUNCTION is_group_admin(p_group_id uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM group_members gm
+    WHERE gm.group_id = p_group_id
+      AND gm.user_id = auth.uid()
+      AND gm.status = 'accepted'
+      AND gm.role IN ('owner', 'admin')
+  );
+$$;
+ALTER FUNCTION is_group_admin(uuid) SET row_security = off;
+
+CREATE POLICY "Users can view their groups"
+  ON groups FOR SELECT
+  USING (is_group_member(groups.id));
 
 CREATE POLICY "Owners can manage groups"
   ON groups FOR UPDATE
@@ -263,12 +290,7 @@ CREATE POLICY "Owners can delete groups"
 CREATE POLICY "Members can view group members"
   ON group_members FOR SELECT
   USING (
-    auth.uid() = user_id OR EXISTS (
-      SELECT 1 FROM group_members gm
-      WHERE gm.group_id = group_members.group_id
-        AND gm.user_id = auth.uid()
-        AND gm.status = 'accepted'
-    )
+    auth.uid() = user_id OR is_group_admin(group_members.group_id)
   );
 
 CREATE POLICY "Members can respond to invites"
@@ -278,23 +300,11 @@ CREATE POLICY "Members can respond to invites"
 
 CREATE POLICY "Admins can manage members"
   ON group_members FOR UPDATE
-  USING (EXISTS (
-    SELECT 1 FROM group_members gm
-    WHERE gm.group_id = group_members.group_id
-      AND gm.user_id = auth.uid()
-      AND gm.status = 'accepted'
-      AND gm.role IN ('owner', 'admin')
-  ));
+  USING (is_group_admin(group_members.group_id));
 
 CREATE POLICY "Admins can remove members"
   ON group_members FOR DELETE
-  USING (EXISTS (
-    SELECT 1 FROM group_members gm
-    WHERE gm.group_id = group_members.group_id
-      AND gm.user_id = auth.uid()
-      AND gm.status = 'accepted'
-      AND gm.role IN ('owner', 'admin')
-  ));
+  USING (is_group_admin(group_members.group_id));
 
 CREATE POLICY "Members can view group shares"
   ON recipe_group_shares FOR SELECT

@@ -41,16 +41,30 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
   if (memberErr) throw new Error(memberErr.message);
   const groupIds = (memberRows ?? []).map((row: any) => row.group_id);
 
-  let groupData: any[] = [];
+  let groupData: { recipe: Recipe; permission: SharePermission }[] = [];
   if (groupIds.length > 0) {
     const { data: shares, error: groupErr } = await supabase
       .from("recipe_group_shares")
-      .select("permission, recipes(*)")
+      .select("permission, recipe_id")
       .in("group_id", groupIds)
       .order("created_at", { ascending: false });
 
     if (groupErr) throw new Error(groupErr.message);
-    groupData = shares ?? [];
+    const recipeIds = Array.from(new Set((shares ?? []).map((row: any) => row.recipe_id)));
+    if (recipeIds.length > 0) {
+      const { data: recipes, error: recipeErr } = await supabase
+        .from("recipes")
+        .select("*")
+        .in("id", recipeIds);
+      if (recipeErr) throw new Error(recipeErr.message);
+      const recipeMap = new Map((recipes ?? []).map((r: Recipe) => [r.id, r]));
+      groupData = (shares ?? [])
+        .map((row: any) => ({
+          recipe: recipeMap.get(row.recipe_id),
+          permission: row.permission as SharePermission,
+        }))
+        .filter((row) => !!row.recipe) as { recipe: Recipe; permission: SharePermission }[];
+    }
   }
 
   const merged = new Map<string, SharedRecipe>();
@@ -62,12 +76,11 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
     });
   });
 
-  (groupData ?? []).forEach((row: any) => {
-    if (!row.recipes) return;
-    const existing = merged.get(row.recipes.id);
-    const permission = row.permission as SharePermission;
+  (groupData ?? []).forEach((row) => {
+    const existing = merged.get(row.recipe.id);
+    const permission = row.permission;
     if (!existing || permissionScore(permission) > permissionScore(existing.permission)) {
-      merged.set(row.recipes.id, { recipe: row.recipes as Recipe, permission });
+      merged.set(row.recipe.id, { recipe: row.recipe, permission });
     }
   });
 

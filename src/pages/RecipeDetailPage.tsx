@@ -323,7 +323,7 @@ export default function RecipeDetailPage() {
         });
       }
       setShareStatus("success");
-      setShareNotice("Group shared.");
+      setShareNotice("Shared with group.");
       setGroupShareId("");
     } catch (err) {
       setShareError(err instanceof Error ? err.message : "Share failed.");
@@ -479,7 +479,7 @@ export default function RecipeDetailPage() {
                   <option value="edit">Can edit</option>
                 </select>
                 <button className="btn" onClick={shareGroup} disabled={shareStatus === "sending"}>
-                  {shareStatus === "sending" ? "Sharing…" : "Share group"}
+                  {shareStatus === "sending" ? "Sharing…" : "Share with group"}
                 </button>
               </div>
 

@@ -111,11 +111,12 @@ export default function RecipeDetailPage() {
   useEffect(() => {
     if (!id || !user || !recipe) return;
     if (recipe.user_id !== user.id) return;
+    const recipeId = id;
     let cancelled = false;
 
     async function loadGroupShares() {
       try {
-        const data = await listGroupShares(id);
+        const data = await listGroupShares(recipeId);
         if (!cancelled) setGroupShares(data.shares ?? []);
       } catch {
         // Ignore group share list errors for now.

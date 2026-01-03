@@ -22,6 +22,7 @@ export default function AppLayout() {
     if (loc.pathname === "/shared") return "Shared with you";
     if (loc.pathname === "/groups") return "Groups";
     if (loc.pathname.endsWith("/edit")) return "Edit recipe";
+    if (loc.pathname.endsWith("/cook")) return "Cook mode";
     if (loc.pathname.startsWith("/recipes/")) return "Recipe details";
     return "Recipe library";
   }, [loc.pathname]);
@@ -31,7 +32,10 @@ export default function AppLayout() {
   const isLibrary =
     loc.pathname === "/" ||
     (loc.pathname.startsWith("/recipes/") && loc.pathname !== "/recipes/new");
-  const isDetail = loc.pathname.startsWith("/recipes/") && !loc.pathname.endsWith("/edit");
+  const isDetail =
+    loc.pathname.startsWith("/recipes/") &&
+    !loc.pathname.endsWith("/edit") &&
+    !loc.pathname.endsWith("/cook");
 
   useEffect(() => {
     function onSharePermission(e: Event) {

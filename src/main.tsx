@@ -7,6 +7,7 @@ import RecipeNewPage from "./pages/RecipeNewPage";
 import RecipeDetailPage from "./pages/RecipeDetailPage";
 import RecipeEditPage from "./pages/RecipeEditPage";
 import SharedRecipesPage from "./pages/SharedRecipesPage";
+import CookModePage from "./pages/CookModePage";
 import GroupsPage from "./pages/GroupsPage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./auth/ProtectedRoute";
@@ -29,6 +30,7 @@ const router = createBrowserRouter([
           { path: "/groups", element: <GroupsPage /> },
           { path: "/recipes/new", element: <RecipeNewPage /> },
           { path: "/recipes/:id", element: <RecipeDetailPage /> },
+          { path: "/recipes/:id/cook", element: <CookModePage /> },
           { path: "/recipes/:id/edit", element: <RecipeEditPage /> },
         ],
       },

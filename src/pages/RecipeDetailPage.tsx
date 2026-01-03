@@ -394,6 +394,9 @@ export default function RecipeDetailPage() {
           )}
 
           <div className="detail-actions">
+            <Link to={`/recipes/${id}/cook`} className="btn">
+              Cook Mode
+            </Link>
             {canEdit && (
               <Link to={`/recipes/${id}/edit`} className="btn">
                 Edit

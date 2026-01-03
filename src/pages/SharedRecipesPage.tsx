@@ -8,11 +8,19 @@ type CoverMap = Record<string, string | undefined>;
 export default function SharedRecipesPage() {
   const [shared, setShared] = useState<SharedRecipe[]>([]);
   const [coverUrls, setCoverUrls] = useState<CoverMap>({});
+  const [error, setError] = useState("");
 
   useEffect(() => {
     async function refresh() {
-      const rows = await listSharedRecipes();
-      setShared(rows);
+      try {
+        const rows = await listSharedRecipes();
+        setShared(rows);
+        setError("");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to load shared recipes.";
+        console.error("Shared recipes load failed:", err);
+        setError(message);
+      }
     }
     refresh();
   }, []);
@@ -67,6 +75,8 @@ export default function SharedRecipesPage() {
           ))}
         </div>
       </div>
+
+      {error && <div className="toast error">{error}</div>}
 
       {shared.length === 0 ? (
         <div className="card muted">No shared recipes yet.</div>

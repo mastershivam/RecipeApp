@@ -27,7 +27,7 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
 
   const { data, error } = await supabase
     .from("recipe_shares")
-    .select("permission, recipes(*)")
+    .select("permission, owner_id, recipes(*)")
     .eq("shared_with", user.id)
     .order("created_at", { ascending: false });
 
@@ -55,7 +55,8 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
       const { data: recipes, error: recipeErr } = await supabase
         .from("recipes")
         .select("*")
-        .in("id", recipeIds);
+        .in("id", recipeIds)
+        .neq("user_id", user.id);
       if (recipeErr) throw new Error(recipeErr.message);
       const recipeMap = new Map((recipes ?? []).map((r: Recipe) => [r.id, r]));
       groupData = (shares ?? [])
@@ -69,6 +70,7 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
 
   const merged = new Map<string, SharedRecipe>();
   (data ?? []).forEach((row: any) => {
+    if (row.owner_id === user.id) return;
     if (!row.recipes) return;
     merged.set(row.recipes.id, {
       recipe: row.recipes as Recipe,
@@ -84,7 +86,7 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
     }
   });
 
-  return Array.from(merged.values()).filter((row) => !!row.recipe);
+  return Array.from(merged.values()).filter((row) => !!row.recipe && row.recipe.user_id !== user.id);
 }
 
 export async function getSharePermission(recipeId: string): Promise<SharePermission | null> {

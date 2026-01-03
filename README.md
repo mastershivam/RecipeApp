@@ -443,19 +443,21 @@ flowchart TB
   subgraph Client["Client: Recipe Archive (React + Vite)"]
     UI["UI Components<br/>AppLayout, Pages, Forms"]
     AuthCtx["AuthProvider<br/>Session + User"]
-    Data["Services Layer<br/>recipeService, photoService"]
+    Data["Services Layer<br/>recipeService, photoService, groupService"]
     PWA["PWA + Cache<br/>service worker"]
   end
 
   subgraph APIs["Vercel Serverless API"]
-    ShareAPI["/share-recipe<br/>/share-list<br/>/share-update<br/>/share-delete"]
-    HeicAPI["/convert-heic"]
-    StatsAPI["/stats"]
+    ApiIndex["/api/index<br/>router"]
+    ShareAPI["share-recipe<br/>share-list<br/>share-update<br/>share-delete"]
+    GroupAPI["group-create<br/>group-invite<br/>group-respond<br/>group-members<br/>group-remove<br/>group-rename<br/>group-delete<br/>group-share*"]
+    HeicAPI["convert-heic"]
+    StatsAPI["stats"]
   end
 
   subgraph Supabase["Supabase"]
     Auth["Auth<br/>Google OAuth, Magic Link"]
-    DB[("Postgres<br/>recipes, recipe_photos, recipe_shares")]
+    DB[("Postgres<br/>recipes, recipe_photos, recipe_shares,<br/>groups, group_members, recipe_group_shares")]
     Storage[("Storage<br/>recipe-photos bucket")]
   end
 
@@ -474,20 +476,22 @@ flowchart TB
   Data --> Storage
   Data --> Auth
 
-  UI --> ShareAPI
-  UI --> HeicAPI
-  UI --> StatsAPI
+  UI --> ApiIndex
+  ApiIndex --> ShareAPI
+  ApiIndex --> GroupAPI
+  ApiIndex --> HeicAPI
+  ApiIndex --> StatsAPI
 
   ShareAPI --> DB
   ShareAPI --> Auth
+  GroupAPI --> DB
+  GroupAPI --> Auth
   HeicAPI --> Storage
   HeicAPI --> Auth
   StatsAPI --> DB
 
   Vite --> UI
-  VercelDev --> ShareAPI
-  VercelDev --> HeicAPI
-  VercelDev --> StatsAPI
+  VercelDev --> ApiIndex
   ESLint --> UI
   TS --> UI
 ```

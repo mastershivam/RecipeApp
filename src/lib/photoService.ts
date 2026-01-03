@@ -151,8 +151,9 @@ export async function getCoverUrlByPhotoId(photoId: string): Promise<string | un
     return signedUrl ?? undefined;
   }
 
-  const { data, error } = await supabase.from("recipe_photos").select("*").eq("id", photoId).single();
+  const { data, error } = await supabase.from("recipe_photos").select("*").eq("id", photoId).maybeSingle();
   if (error) throw new Error(error.message);
+  if (!data) return undefined;
   const photo = data as RecipePhoto;
   photoCache.set(photoId, photo);
   if (!photo.storage_path) return undefined;

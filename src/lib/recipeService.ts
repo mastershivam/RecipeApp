@@ -25,6 +25,8 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
   const user = userData.user;
   if (!user) throw new Error("Not authenticated");
 
+  console.log("shared: user", user.id);
+
   const { data, error } = await supabase
     .from("recipe_shares")
     .select("permission, owner_id, recipes(*)")
@@ -32,6 +34,7 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
+  console.log("shared: direct shares", data?.length ?? 0);
   const { data: memberRows, error: memberErr } = await supabase
     .from("group_members")
     .select("group_id")
@@ -40,6 +43,7 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
 
   if (memberErr) throw new Error(memberErr.message);
   const groupIds = (memberRows ?? []).map((row: any) => row.group_id);
+  console.log("shared: group ids", groupIds);
 
   let groupData: { recipe: Recipe; permission: SharePermission }[] = [];
   if (groupIds.length > 0) {
@@ -50,7 +54,9 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
       .order("created_at", { ascending: false });
 
     if (groupErr) throw new Error(groupErr.message);
+    console.log("shared: group shares", shares?.length ?? 0);
     const recipeIds = Array.from(new Set((shares ?? []).map((row: any) => row.recipe_id)));
+    console.log("shared: group recipe ids", recipeIds);
     if (recipeIds.length > 0) {
       const { data: recipes, error: recipeErr } = await supabase
         .from("recipes")
@@ -58,6 +64,7 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
         .in("id", recipeIds)
         .neq("user_id", user.id);
       if (recipeErr) throw new Error(recipeErr.message);
+      console.log("shared: group recipes", recipes?.length ?? 0);
       const recipeMap = new Map((recipes ?? []).map((r: Recipe) => [r.id, r]));
       groupData = (shares ?? [])
         .map((row: any) => ({
@@ -86,7 +93,11 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
     }
   });
 
-  return Array.from(merged.values()).filter((row) => !!row.recipe && row.recipe.user_id !== user.id);
+  const result = Array.from(merged.values()).filter(
+    (row) => !!row.recipe && row.recipe.user_id !== user.id
+  );
+  console.log("shared: merged", result.length);
+  return result;
 }
 
 export async function getSharePermission(recipeId: string): Promise<SharePermission | null> {

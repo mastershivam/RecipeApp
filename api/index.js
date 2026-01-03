@@ -40,8 +40,8 @@ const routes = {
 
 function getRoute(req) {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
-  const trimmed = url.pathname.replace(/^\/api\/?/, "");
-  return trimmed;
+  const pathParam = url.searchParams.get("path") || "";
+  return pathParam.replace(/^\/+/, "");
 }
 
 export default async function handler(req, res) {

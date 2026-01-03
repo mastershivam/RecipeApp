@@ -13,9 +13,10 @@ export default function CookModePage() {
 
   useEffect(() => {
     if (!id) return;
+    const recipeId = id;
     let cancelled = false;
     async function load() {
-      const r = await getRecipe(id);
+      const r = await getRecipe(recipeId);
       if (!cancelled) setRecipe(r);
     }
     load();

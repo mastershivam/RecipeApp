@@ -883,8 +883,9 @@ html[data-theme="dark"] .textarea::placeholder {
 
 .gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 10px;
+  align-items: stretch;
 }
 
 .gallery-item {
@@ -893,6 +894,8 @@ html[data-theme="dark"] .textarea::placeholder {
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+  width: 100%;
+  align-self: stretch;
 }
 
 .gallery-media {
@@ -1155,7 +1158,7 @@ html[data-theme="dark"] .textarea::placeholder {
   }
 
   .gallery {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .stat-grid {

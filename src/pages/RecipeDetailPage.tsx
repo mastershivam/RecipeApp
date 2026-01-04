@@ -662,21 +662,28 @@ export default function RecipeDetailPage() {
         </div>
 
         {exportOpen && (
-          <div className="card stack" style={{ marginTop: 12 }}>
-            <div className="h2">Export format</div>
-            <div className="row wrap" style={{ alignItems: "center" }}>
-              <button className="btn" type="button" onClick={handleExportJson} style={{ flex: 0 }}>
-                JSON
-              </button>
-              <button className="btn" type="button" onClick={handleExportMarkdown} style={{ flex: 0 }}>
-                Markdown
-              </button>
-              <button className="btn" type="button" onClick={handleExportPdf} style={{ flex: 0 }}>
-                PDF
-              </button>
-              <button className="btn ghost" type="button" onClick={() => setExportOpen(false)} style={{ flex: 0 }}>
-                Close
-              </button>
+          <div className="modal-overlay" onClick={() => setExportOpen(false)}>
+            <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <div>
+                  <div className="h2">Export format</div>
+                  <div className="muted small">Choose a format to download.</div>
+                </div>
+                <button className="btn ghost" type="button" onClick={() => setExportOpen(false)}>
+                  Close
+                </button>
+              </div>
+              <div className="row wrap" style={{ alignItems: "center" }}>
+                <button className="btn" type="button" onClick={handleExportJson} style={{ flex: 0 }}>
+                  JSON
+                </button>
+                <button className="btn" type="button" onClick={handleExportMarkdown} style={{ flex: 0 }}>
+                  Markdown
+                </button>
+                <button className="btn" type="button" onClick={handleExportPdf} style={{ flex: 0 }}>
+                  PDF
+                </button>
+              </div>
             </div>
           </div>
         )}

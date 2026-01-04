@@ -9,7 +9,7 @@ export default function AppLayout() {
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     const stored = localStorage.getItem("theme");
     if (stored === "light" || stored === "dark") return stored;
-    return "dark";
+    return "light";
   });
 
   useEffect(() => {

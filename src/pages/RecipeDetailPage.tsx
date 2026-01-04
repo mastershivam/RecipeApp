@@ -42,6 +42,7 @@ export default function RecipeDetailPage() {
   const [scale, setScale] = useState(1);
   const [unitMode, setUnitMode] = useState<"auto" | "imperial" | "metric">("auto");
   const [changes, setChanges] = useState<RecipeChange[]>([]);
+  const [exportOpen, setExportOpen] = useState(false);
 
   async function refresh() {
     if (!id) return;
@@ -637,14 +638,8 @@ export default function RecipeDetailPage() {
                 {recipe.is_favorite ? "Favorited" : "Favorite"}
               </button>
             )}
-            <button className="btn" type="button" onClick={handleExportJson}>
-              Export JSON
-            </button>
-            <button className="btn" type="button" onClick={handleExportMarkdown}>
-              Export Markdown
-            </button>
-            <button className="btn" type="button" onClick={handleExportPdf}>
-              Export PDF
+            <button className="btn" type="button" onClick={() => setExportOpen((v) => !v)}>
+              Export
             </button>
             {canEdit && (
               <Link to={`/recipes/${id}/edit`} className="btn">
@@ -665,6 +660,26 @@ export default function RecipeDetailPage() {
             )}
           </div>
         </div>
+
+        {exportOpen && (
+          <div className="card stack" style={{ marginTop: 12 }}>
+            <div className="h2">Export format</div>
+            <div className="row wrap" style={{ alignItems: "center" }}>
+              <button className="btn" type="button" onClick={handleExportJson} style={{ flex: 0 }}>
+                JSON
+              </button>
+              <button className="btn" type="button" onClick={handleExportMarkdown} style={{ flex: 0 }}>
+                Markdown
+              </button>
+              <button className="btn" type="button" onClick={handleExportPdf} style={{ flex: 0 }}>
+                PDF
+              </button>
+              <button className="btn ghost" type="button" onClick={() => setExportOpen(false)} style={{ flex: 0 }}>
+                Close
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="detail-hero-media">
           {(() => {

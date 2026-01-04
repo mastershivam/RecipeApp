@@ -596,7 +596,7 @@ export default function RecipeDetailPage() {
       
       <div className="detail-grid">
         <div className="card">
-          <div className="row" style={{ alignItems: "center" }}>
+          <div className="row wrap" style={{ alignItems: "center" }}>
             <div className="h2">Ingredients</div>
             <div style={{ flex: 0 }} className="segmented">
               {[1, 2, 3].map((value) => (

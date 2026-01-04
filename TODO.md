@@ -10,13 +10,13 @@
 - Import/export (PDF/Markdown + common recipe formats).
 - AI recipe import.
 - Recipe change log (history/audit trail).
-- Server-side full-text search (Supabase tsvector).
 - Tag autocomplete/suggestions.
 - Paginated/infinite recipe list and gallery.
 - Background upload queue with retries.
 - Image optimization (resize/quality before upload).
 
 ## Done
+- Server-side full-text search (Supabase tsvector).
 - Server-side HEIC conversion via Vercel function.
 - Cook Mode (step-by-step focus + timers).
 - Upload progress indicator (indeterminate).

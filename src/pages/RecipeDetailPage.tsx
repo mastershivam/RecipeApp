@@ -260,9 +260,6 @@ export default function RecipeDetailPage() {
 
   function handleExportPdf() {
     if (!recipe) return;
-    const win = window.open("", "_blank", "noopener,noreferrer");
-    if (!win) return;
-
     const escapeHtml = (value: string) =>
       value
         .replace(/&/g, "&amp;")
@@ -325,9 +322,34 @@ export default function RecipeDetailPage() {
   </body>
 </html>`;
 
-    win.document.open();
-    win.document.write(html);
-    win.document.close();
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.style.opacity = "0";
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      document.body.removeChild(iframe);
+      return;
+    }
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    const onLoad = () => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+    };
+
+    iframe.onload = onLoad;
   }
 
   function handleExportMarkdown() {

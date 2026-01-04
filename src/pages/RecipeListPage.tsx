@@ -234,6 +234,7 @@ export default function RecipeListPage() {
         <div className="card muted">No recipes yet. Hit “New recipe”.</div>
       ) : (
         <div className="stack">
+          {showHighlights && <div className="h2">All recipes</div>}
           <div className="grid">
             {recipes.map((r) => (
               <RecipeCard key={r.id} recipe={r as any} coverUrl={coverUrls[r.id]} />

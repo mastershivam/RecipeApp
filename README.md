@@ -319,6 +319,9 @@ CREATE POLICY "Owners can manage group shares"
   ON recipe_group_shares FOR ALL
   USING (auth.uid() = owner_id)
   WITH CHECK (auth.uid() = owner_id);
+
+-- Full-text search (server-side)
+-- Run supabase/fts.sql to add search_vector, trigger, and index.
 ```
 
 ### 6. Set Up Storage Bucket
@@ -371,6 +374,13 @@ CREATE POLICY "Users can delete their own photos"
     auth.uid()::text = (storage.foldername(name))[1]
   );
 ```
+
+### Full-Text Search
+
+Server-side search uses PostgreSQL full-text search with a `search_vector` column and trigger.
+
+1. Run the SQL in `supabase/fts.sql` in your Supabase SQL editor.
+2. Use the search box on the recipe list page (supports web-style queries like `chicken "garlic butter"`).
 
 ### 7. Configure Google OAuth (Optional)
 

@@ -9,7 +9,6 @@
 - Recently cooked + Favorites sections on the home dashboard.
 - Import/export (PDF/Markdown + common recipe formats).
 - AI recipe import.
-- Cook Mode (step-by-step focus + timers).
 - Recipe change log (history/audit trail).
 - Server-side full-text search (Supabase tsvector).
 - Tag autocomplete/suggestions.
@@ -19,6 +18,7 @@
 
 ## Done
 - Server-side HEIC conversion via Vercel function.
+- Cook Mode (step-by-step focus + timers).
 - Upload progress indicator (indeterminate).
 - Gallery image fitting fixes.
 - Landing-style login page with global stats.

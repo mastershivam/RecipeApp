@@ -9,11 +9,26 @@ function permissionScore(permission: SharePermission): PermissionRank {
   return permission === "edit" ? 1 : 0;
 }
 
-export async function listRecipes(): Promise<Recipe[]> {
-  const { data, error } = await supabase
-    .from("recipes")
-    .select("*")
-    .order("updated_at", { ascending: false });
+export async function listRecipes(options?: {
+  search?: string;
+  tags?: string[];
+}): Promise<Recipe[]> {
+  const search = options?.search?.trim();
+  const tags = options?.tags ?? [];
+  let query = supabase.from("recipes").select("*");
+
+  if (search) {
+    query = query.textSearch("search_vector", search, {
+      type: "websearch",
+      config: "english",
+    });
+  }
+
+  if (tags.length > 0) {
+    query = query.contains("tags", tags);
+  }
+
+  const { data, error } = await query.order("updated_at", { ascending: false });
 
   if (error) throw new Error(error.message);
   return (data ?? []) as Recipe[];

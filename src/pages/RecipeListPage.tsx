@@ -19,14 +19,25 @@ export default function RecipeListPage() {
   const nav = useNavigate();
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  async function refresh() {
-    const r = await listRecipes();
+  const activeTagsArray = useMemo(() => Array.from(activeTags).sort(), [activeTags]);
+
+  async function refresh(nextQuery: string, tags: string[]) {
+    const r = await listRecipes({ search: nextQuery, tags });
     setRecipes(r);
   }
 
   useEffect(() => {
-    refresh();
-  }, []);
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      refresh(query, activeTagsArray).catch(() => {
+        if (!cancelled) setRecipes([]);
+      });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, activeTagsArray]);
 
   useEffect(() => {
     const nextIds: Record<string, string | null> = {};
@@ -76,19 +87,6 @@ export default function RecipeListPage() {
     ];
   }, [recipes, allTags.length]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return recipes.filter((r) => {
-      const matchesText =
-        !q ||
-        r.title.toLowerCase().includes(q) ||
-        (r.description || "").toLowerCase().includes(q) ||
-        r.tags.some((t) => t.includes(q));
-
-      const matchesTags = activeTags.size === 0 || r.tags.some((t) => activeTags.has(t));
-      return matchesText && matchesTags;
-    });
-  }, [recipes, query, activeTags]);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,11 +163,11 @@ export default function RecipeListPage() {
         onClear={() => setActiveTags(new Set())}
       />
 
-      {filtered.length === 0 ? (
+      {recipes.length === 0 ? (
         <div className="card muted">No recipes yet. Hit “New recipe”.</div>
       ) : (
         <div className="grid">
-          {filtered.map((r) => (
+          {recipes.map((r) => (
             <RecipeCard key={r.id} recipe={r as any} coverUrl={coverUrls[r.id]} />
           ))}
         </div>

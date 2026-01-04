@@ -188,6 +188,38 @@ export default function RecipeDetailPage() {
   }, [recipe, scaledServings]);
 
   const isOwner = !!(user && recipe && user.id === recipe.user_id);
+
+  function handleExportJson() {
+    if (!recipe) return;
+    const exportData = {
+      schemaVersion: 1,
+      title: recipe.title,
+      description: recipe.description ?? null,
+      tags: recipe.tags ?? [],
+      ingredients: (recipe.ingredients ?? []).map((i: any) => ({ text: i.text ?? "" })),
+      steps: (recipe.steps ?? []).map((s: any) => ({ text: s.text ?? "" })),
+      prepMinutes: recipe.prep_minutes ?? null,
+      cookMinutes: recipe.cook_minutes ?? null,
+      servings: recipe.servings ?? null,
+      sourceUrl: recipe.source_url ?? null,
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const titleSlug = recipe.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "");
+    const fileName = `${titleSlug || "recipe"}.json`;
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
   const canEdit = isOwner || sharePermission === "edit";
 
   useEffect(() => {
@@ -397,6 +429,9 @@ export default function RecipeDetailPage() {
             <Link to={`/recipes/${id}/cook`} className="btn">
               Cook Mode
             </Link>
+            <button className="btn" type="button" onClick={handleExportJson}>
+              Export JSON
+            </button>
             {canEdit && (
               <Link to={`/recipes/${id}/edit`} className="btn">
                 Edit

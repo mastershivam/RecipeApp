@@ -8,7 +8,6 @@
 ## Next
 - Recently cooked + Favorites sections on the home dashboard.
 - Import/export (PDF/Markdown + common recipe formats).
-- AI recipe import.
 - Recipe change log (history/audit trail).
 - Tag autocomplete/suggestions.
 - Paginated/infinite recipe list and gallery.
@@ -16,6 +15,7 @@
 - Image optimization (resize/quality before upload).
 
 ## Done
+- AI recipe import
 - Server-side full-text search (Supabase tsvector).
 - Server-side HEIC conversion via Vercel function.
 - Cook Mode (step-by-step focus + timers).

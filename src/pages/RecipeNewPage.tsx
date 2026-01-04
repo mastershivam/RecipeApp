@@ -20,6 +20,9 @@ export default function RecipeNewPage() {
   const [importStage, setImportStage] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [importNotice, setImportNotice] = useState<string | null>(null);
+  const [jsonImporting, setJsonImporting] = useState(false);
+  const [jsonImportError, setJsonImportError] = useState<string | null>(null);
+  const [jsonImportNotice, setJsonImportNotice] = useState<string | null>(null);
 
   function addPending(files: FileList) {
     const next: PendingPhoto[] = [];
@@ -90,11 +93,57 @@ export default function RecipeNewPage() {
     }
   }
 
+  async function handleJsonImport(file: File | null) {
+    if (!file) return;
+    setJsonImportError(null);
+    setJsonImportNotice(null);
+    setJsonImporting(true);
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const source = parsed?.recipe ?? parsed;
+
+      const payload = {
+        title: String(source?.title || "").trim(),
+        description: source?.description ?? undefined,
+        tags: Array.isArray(source?.tags) ? source.tags : [],
+        ingredients: Array.isArray(source?.ingredients)
+          ? source.ingredients.map((i: any) => ({ text: String(i?.text || i || "").trim() }))
+          : [],
+        steps: Array.isArray(source?.steps)
+          ? source.steps.map((s: any) => ({ text: String(s?.text || s || "").trim() }))
+          : [],
+        prep_minutes: source?.prepMinutes ?? undefined,
+        cook_minutes: source?.cookMinutes ?? undefined,
+        servings: source?.servings ?? undefined,
+        source_url: source?.sourceUrl ?? undefined,
+      };
+
+      if (!payload.title || payload.ingredients.length === 0 || payload.steps.length === 0) {
+        throw new Error("Import file is missing title, ingredients, or steps.");
+      }
+
+      const recipe = await createRecipe(payload);
+
+      setJsonImportNotice("Recipe imported.");
+      nav(`/recipes/${recipe.id}/edit`, {
+        state: { toast: { type: "success", message: "Recipe imported. Review and edit as needed." } },
+      });
+    } catch (err) {
+      setJsonImportError(err instanceof Error ? err.message : "JSON import failed.");
+    } finally {
+      setJsonImporting(false);
+    }
+  }
+
   return (
     <div className="stack">
       {uploadError && <div className="toast error">{uploadError}</div>}
       {importError && <div className="toast error">{importError}</div>}
       {importNotice && <div className="toast success">{importNotice}</div>}
+      {jsonImportError && <div className="toast error">{jsonImportError}</div>}
+      {jsonImportNotice && <div className="toast success">{jsonImportNotice}</div>}
       <div className="card page-hero">
         <div>
           <div className="eyebrow">Create</div>
@@ -137,6 +186,26 @@ export default function RecipeNewPage() {
           </button>
         </div>
         {importing && importStage && <div className="muted small">{importStage}</div>}
+      </div>
+
+      <div className="card stack">
+        <div className="h2">Import JSON</div>
+        <div className="muted small">
+          Upload a JSON file exported from Recipe Archive or a compatible format.
+        </div>
+        <div className="row wrap">
+          <input
+            className="input"
+            type="file"
+            accept="application/json"
+            onChange={(e) => handleJsonImport(e.target.files?.[0] ?? null)}
+            style={{ flex: "1 1 240px" }}
+            disabled={jsonImporting}
+          />
+          <div className="muted small" style={{ flex: "0 1 auto" }}>
+            {jsonImporting ? "Importing…" : "Choose a file"}
+          </div>
+        </div>
       </div>
 
       <div className="form-grid">

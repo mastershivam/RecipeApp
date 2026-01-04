@@ -10,7 +10,10 @@ export default function RecipeCard({
 }) {
   return (
     <Link to={`/recipes/${recipe.id}`} className="card recipe-card" style={{ display: "block" }}>
-      <img className="thumb" src={coverUrl || "/pwa-512.png"} alt="" />
+      <div className="recipe-card-media">
+        <img className="thumb" src={coverUrl || "/pwa-512.png"} alt="" />
+        {recipe.is_favorite && <div className="favorite-badge">Favorite</div>}
+      </div>
       <div style={{ marginTop: 10 }}>
         <div className="h2">{recipe.title}</div>
         {recipe.tags.length > 0 && (

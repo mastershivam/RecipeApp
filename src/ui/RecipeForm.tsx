@@ -45,10 +45,12 @@ export default function RecipeForm({
   initial,
   onSubmit,
   submitLabel,
+  suggestedTags = [],
 }: {
   initial?: RecipeFormData;
   onSubmit: (recipe: Omit<RecipeFormData, "createdAt" | "updatedAt">) => Promise<void>;
   submitLabel: string;
+  suggestedTags?: string[];
 }) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -65,6 +67,15 @@ export default function RecipeForm({
   const [saving, setSaving] = useState(false);
 
   const tags = useMemo(() => normaliseTags(tagsText), [tagsText]);
+  const tagSuggestions = useMemo(
+    () => suggestedTags.filter((t) => !tags.includes(t)).slice(0, 10),
+    [suggestedTags, tags]
+  );
+
+  function addTagSuggestion(tag: string) {
+    const next = Array.from(new Set([...tags, tag]));
+    setTagsText(next.join(", "));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -141,6 +152,15 @@ export default function RecipeForm({
             {tags.length > 0 && (
               <div className="muted small" style={{ marginTop: 6 }}>
                 Saved as: {tags.join(", ")}
+              </div>
+            )}
+            {tagSuggestions.length > 0 && (
+              <div className="badges" style={{ marginTop: 8 }}>
+                {tagSuggestions.map((tag) => (
+                  <div key={tag} className="badge" onClick={() => addTagSuggestion(tag)}>
+                    {tag}
+                  </div>
+                ))}
               </div>
             )}
           </div>

@@ -63,7 +63,7 @@ export default async function handler(req, res) {
     const inviterId = authData.user.id;
     const { data: member, error: memberErr } = await supabase
       .from("group_members")
-      .select("role,status")
+      .select("role,status,groups(name)")
       .eq("group_id", groupId)
       .eq("user_id", inviterId)
       .maybeSingle();

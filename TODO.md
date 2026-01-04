@@ -1,18 +1,18 @@
 # Recipe Archive TODO
 
 ## Now
-- Add architectural diagram (system overview: client, Supabase, serverless endpoints).
-- Add share notifications (email).
-- Add per-file upload progress (real progress, not just animated bar).
+- (done) Add architectural diagram (system overview: client, Supabase, serverless endpoints).
+- (done) Add share notifications (email).
+- (done) Add per-file upload progress (real progress, not just animated bar).
 
 ## Next
-- Recently cooked + Favorites sections on the home dashboard.
-- Import/export (PDF/Markdown + common recipe formats).
-- Recipe change log (history/audit trail).
-- Tag autocomplete/suggestions.
-- Paginated/infinite recipe list and gallery.
-- Background upload queue with retries.
-- Image optimization (resize/quality before upload).
+- (done) Recently cooked + Favorites sections on the home dashboard.
+- (done) Import/export (JSON + PDF + Markdown export).
+- (done) Recipe change log (history/audit trail).
+- (done) Tag autocomplete/suggestions.
+- (done) Paginated/infinite recipe list and gallery.
+- (done) Background upload queue with retries.
+- (done) Image optimization (resize/quality before upload).
 
 ## Done
 - AI recipe import
@@ -27,3 +27,12 @@
 - Signed URL caching to reduce refetching.
 - Recipe scaling (1x/2x/3x) with metric/imperial/auto conversion.
 - Cache invalidation when cover photo changes.
+- Architectural diagram.
+- Per-file upload progress.
+- Favorites + recently cooked sections.
+- Import/export (JSON + PDF + Markdown export).
+- Recipe change log.
+- Tag autocomplete/suggestions.
+- Paginated recipe list + gallery.
+- Background upload queue with retries.
+- Image optimization before upload.

@@ -10,6 +10,9 @@ type CoverMap = Record<string, string | undefined>;
 
 export default function RecipeListPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [coverUrls, setCoverUrls] = useState<CoverMap>({});
@@ -22,8 +25,34 @@ export default function RecipeListPage() {
   const activeTagsArray = useMemo(() => Array.from(activeTags).sort(), [activeTags]);
 
   async function refresh(nextQuery: string, tags: string[]) {
-    const r = await listRecipes({ search: nextQuery, tags });
-    setRecipes(r);
+    setLoading(true);
+    try {
+      const r = await listRecipes({ search: nextQuery, tags, page: 0, pageSize: 24 });
+      setRecipes(r.data);
+      setHasMore(r.hasMore);
+      setPage(0);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadMore() {
+    if (loading || !hasMore) return;
+    setLoading(true);
+    const nextPage = page + 1;
+    try {
+      const r = await listRecipes({
+        search: query,
+        tags: activeTagsArray,
+        page: nextPage,
+        pageSize: 24,
+      });
+      setRecipes((prev) => [...prev, ...r.data]);
+      setHasMore(r.hasMore);
+      setPage(nextPage);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -119,6 +148,22 @@ export default function RecipeListPage() {
     });
   }
 
+  const showHighlights = query.trim() === "" && activeTagsArray.length === 0;
+  const favorites = useMemo(
+    () => recipes.filter((r) => r.is_favorite).slice(0, 6),
+    [recipes]
+  );
+  const recentlyCooked = useMemo(() => {
+    return [...recipes]
+      .filter((r) => r.last_cooked_at)
+      .sort(
+        (a, b) =>
+          new Date(b.last_cooked_at as string).getTime() -
+          new Date(a.last_cooked_at as string).getTime()
+      )
+      .slice(0, 6);
+  }, [recipes]);
+
   return (
     <div className="stack">
       <div className="card hero">
@@ -163,13 +208,42 @@ export default function RecipeListPage() {
         onClear={() => setActiveTags(new Set())}
       />
 
+      {showHighlights && favorites.length > 0 && (
+        <div className="stack">
+          <div className="h2">Favorites</div>
+          <div className="grid">
+            {favorites.map((r) => (
+              <RecipeCard key={r.id} recipe={r as any} coverUrl={coverUrls[r.id]} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showHighlights && recentlyCooked.length > 0 && (
+        <div className="stack">
+          <div className="h2">Recently cooked</div>
+          <div className="grid">
+            {recentlyCooked.map((r) => (
+              <RecipeCard key={r.id} recipe={r as any} coverUrl={coverUrls[r.id]} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {recipes.length === 0 ? (
         <div className="card muted">No recipes yet. Hit “New recipe”.</div>
       ) : (
-        <div className="grid">
-          {recipes.map((r) => (
-            <RecipeCard key={r.id} recipe={r as any} coverUrl={coverUrls[r.id]} />
-          ))}
+        <div className="stack">
+          <div className="grid">
+            {recipes.map((r) => (
+              <RecipeCard key={r.id} recipe={r as any} coverUrl={coverUrls[r.id]} />
+            ))}
+          </div>
+          {hasMore && (
+            <button className="btn" type="button" onClick={loadMore} disabled={loading}>
+              {loading ? "Loading…" : "Load more"}
+            </button>
+          )}
         </div>
       )}
     </div>

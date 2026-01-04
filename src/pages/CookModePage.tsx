@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getRecipe } from "../lib/recipeService";
+import { getRecipe, updateRecipe } from "../lib/recipeService";
 import type { Recipe } from "../lib/types";
+import { useAuth } from "../auth/UseAuth";
 
 export default function CookModePage() {
   const { id } = useParams();
   const nav = useNavigate();
+  const { user } = useAuth();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [wakeActive, setWakeActive] = useState(false);
@@ -24,6 +26,13 @@ export default function CookModePage() {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!recipe || !user || recipe.user_id !== user.id) return;
+    const now = new Date().toISOString();
+    updateRecipe(recipe.id, { last_cooked_at: now }).catch(() => {});
+    setRecipe((prev) => (prev ? { ...prev, last_cooked_at: now } : prev));
+  }, [recipe?.id, recipe?.user_id, user]);
 
   useEffect(() => {
     if (!("wakeLock" in navigator) || !navigator.wakeLock) return;

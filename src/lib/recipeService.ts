@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient";
-import type { Recipe } from "./types";
+import type { Recipe, RecipeChange } from "./types";
 
 export type SharePermission = "view" | "edit";
 export type SharedRecipe = { recipe: Recipe; permission: SharePermission };
@@ -12,9 +12,13 @@ function permissionScore(permission: SharePermission): PermissionRank {
 export async function listRecipes(options?: {
   search?: string;
   tags?: string[];
-}): Promise<Recipe[]> {
+  page?: number;
+  pageSize?: number;
+}): Promise<{ data: Recipe[]; hasMore: boolean }> {
   const search = options?.search?.trim();
   const tags = options?.tags ?? [];
+  const page = options?.page ?? 0;
+  const pageSize = options?.pageSize ?? 0;
   let query = supabase.from("recipes").select("*");
 
   if (search) {
@@ -28,10 +32,18 @@ export async function listRecipes(options?: {
     query = query.contains("tags", tags);
   }
 
+  if (pageSize > 0) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+    query = query.range(from, to);
+  }
+
   const { data, error } = await query.order("updated_at", { ascending: false });
 
   if (error) throw new Error(error.message);
-  return (data ?? []) as Recipe[];
+  const rows = (data ?? []) as Recipe[];
+  const hasMore = pageSize > 0 ? rows.length === pageSize : false;
+  return { data: rows, hasMore };
 }
 
 export async function listSharedRecipes(): Promise<SharedRecipe[]> {
@@ -206,4 +218,25 @@ export async function updateRecipe(id: string, patch: Partial<Omit<Recipe, "id" 
 export async function deleteRecipe(id: string) {
   const { error } = await supabase.from("recipes").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+export async function listTagSuggestions(): Promise<string[]> {
+  const { data, error } = await supabase.from("recipes").select("tags");
+  if (error) throw new Error(error.message);
+  const tags = new Set<string>();
+  (data ?? []).forEach((row: any) => {
+    (row.tags ?? []).forEach((t: string) => tags.add(t));
+  });
+  return Array.from(tags).sort();
+}
+
+export async function listRecipeChanges(recipeId: string): Promise<RecipeChange[]> {
+  const { data, error } = await supabase
+    .from("recipe_changes")
+    .select("*")
+    .eq("recipe_id", recipeId)
+    .order("changed_at", { ascending: false })
+    .limit(30);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as RecipeChange[];
 }

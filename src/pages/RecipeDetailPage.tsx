@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import type { Recipe, RecipePhoto } from "../lib/types";
-import { getRecipe, deleteRecipe, getSharePermission, type SharePermission } from "../lib/recipeService";
-import { listPhotos } from "../lib/photoService";
+import type { Recipe, RecipeChange, RecipePhoto } from "../lib/types";
+import { getRecipe, deleteRecipe, updateRecipe, listRecipeChanges, getSharePermission, type SharePermission } from "../lib/recipeService";
+import { listPhotosPage } from "../lib/photoService";
 import { useAuth } from "../auth/UseAuth.ts";
 import {
   listGroupAdmins,
@@ -19,6 +19,9 @@ export default function RecipeDetailPage() {
   const { user, session } = useAuth();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [photos, setPhotos] = useState<RecipePhoto[]>([]);
+  const [photoPage, setPhotoPage] = useState(0);
+  const [photoHasMore, setPhotoHasMore] = useState(false);
+  const photoPageSize = 8;
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [sharePermission, setSharePermission] = useState<SharePermission | null>(null);
   const [shareEmail, setShareEmail] = useState("");
@@ -38,18 +41,36 @@ export default function RecipeDetailPage() {
   const [shareOpen, setShareOpen] = useState(false);
   const [scale, setScale] = useState(1);
   const [unitMode, setUnitMode] = useState<"auto" | "imperial" | "metric">("auto");
+  const [changes, setChanges] = useState<RecipeChange[]>([]);
 
   async function refresh() {
     if (!id) return;
     const r = await getRecipe(id);
     setRecipe(r);
-    const p = await listPhotos(id);
-    setPhotos(p);
+    const p = await listPhotosPage(id, { page: 0, pageSize: photoPageSize });
+    setPhotos(p.data);
+    setPhotoHasMore(p.hasMore);
+    setPhotoPage(0);
   }
 
   useEffect(() => {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    listRecipeChanges(id)
+      .then((rows) => {
+        if (!cancelled) setChanges(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setChanges([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   useEffect(() => {
@@ -189,6 +210,22 @@ export default function RecipeDetailPage() {
 
   const isOwner = !!(user && recipe && user.id === recipe.user_id);
 
+  async function toggleFavorite() {
+    if (!recipe || !user || recipe.user_id !== user.id) return;
+    const next = !recipe.is_favorite;
+    await updateRecipe(recipe.id, { is_favorite: next });
+    setRecipe((prev) => (prev ? { ...prev, is_favorite: next } : prev));
+  }
+
+  async function loadMorePhotos() {
+    if (!id || !photoHasMore) return;
+    const nextPage = photoPage + 1;
+    const p = await listPhotosPage(id, { page: nextPage, pageSize: photoPageSize });
+    setPhotos((prev) => [...prev, ...p.data]);
+    setPhotoHasMore(p.hasMore);
+    setPhotoPage(nextPage);
+  }
+
   function handleExportJson() {
     if (!recipe) return;
     const exportData = {
@@ -219,6 +256,150 @@ export default function RecipeDetailPage() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+  }
+
+  function handleExportPdf() {
+    if (!recipe) return;
+    const win = window.open("", "_blank", "noopener,noreferrer");
+    if (!win) return;
+
+    const escapeHtml = (value: string) =>
+      value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    const ingredients = (recipe.ingredients ?? []).map((i: any) => i.text || "").filter(Boolean);
+    const steps = (recipe.steps ?? []).map((s: any) => s.text || "").filter(Boolean);
+    const tags = (recipe.tags ?? []).filter(Boolean).join(" · ");
+    const meta = [
+      recipe.prep_minutes ? `Prep ${recipe.prep_minutes}m` : null,
+      recipe.cook_minutes ? `Cook ${recipe.cook_minutes}m` : null,
+      recipe.servings ? `Serves ${recipe.servings}` : null,
+    ]
+      .filter(Boolean)
+      .join(" • ");
+
+    const html = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>${escapeHtml(recipe.title)} - Recipe Archive</title>
+    <style>
+      :root { color-scheme: light; }
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; color: #1d1d1f; }
+      h1 { font-size: 28px; margin: 0 0 8px; }
+      h2 { font-size: 16px; margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 0.12em; color: #6e6e73; }
+      .muted { color: #6e6e73; font-size: 14px; }
+      .meta { margin: 6px 0 14px; font-size: 14px; }
+      ul, ol { margin: 0; padding-left: 18px; }
+      li { margin: 6px 0; line-height: 1.5; }
+      .tags { margin-top: 8px; }
+      .rule { height: 1px; background: #e5e7eb; margin: 18px 0; }
+      @media print { body { margin: 0.5in; } }
+    </style>
+  </head>
+  <body>
+    <h1>${escapeHtml(recipe.title)}</h1>
+    ${recipe.description ? `<div class="muted">${escapeHtml(recipe.description)}</div>` : ""}
+    ${meta ? `<div class="meta">${escapeHtml(meta)}</div>` : ""}
+    ${tags ? `<div class="tags muted">Tags: ${escapeHtml(tags)}</div>` : ""}
+    ${recipe.source_url ? `<div class="muted">Source: ${escapeHtml(recipe.source_url)}</div>` : ""}
+    <div class="rule"></div>
+    <h2>Ingredients</h2>
+    <ul>
+      ${ingredients.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+    </ul>
+    <h2>Steps</h2>
+    <ol>
+      ${steps.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+    </ol>
+    <script>
+      window.onload = () => {
+        window.focus();
+        window.print();
+      };
+    </script>
+  </body>
+</html>`;
+
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+  }
+
+  function handleExportMarkdown() {
+    if (!recipe) return;
+    const lines: string[] = [];
+    lines.push(`# ${recipe.title}`);
+    if (recipe.description) lines.push(`\n${recipe.description}`);
+    const meta = [
+      recipe.prep_minutes ? `Prep: ${recipe.prep_minutes}m` : null,
+      recipe.cook_minutes ? `Cook: ${recipe.cook_minutes}m` : null,
+      recipe.servings ? `Serves: ${recipe.servings}` : null,
+    ]
+      .filter(Boolean)
+      .join(" • ");
+    if (meta) lines.push(`\n${meta}`);
+    if (recipe.tags?.length) lines.push(`\nTags: ${recipe.tags.join(", ")}`);
+    if (recipe.source_url) lines.push(`\nSource: ${recipe.source_url}`);
+
+    lines.push(`\n## Ingredients`);
+    (recipe.ingredients ?? []).forEach((i: any) => {
+      if (i?.text) lines.push(`- ${i.text}`);
+    });
+
+    lines.push(`\n## Steps`);
+    (recipe.steps ?? []).forEach((s: any, idx: number) => {
+      if (s?.text) lines.push(`${idx + 1}. ${s.text}`);
+    });
+
+    const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const titleSlug = recipe.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "");
+    const fileName = `${titleSlug || "recipe"}.md`;
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function summarizeChange(change: RecipeChange) {
+    if (change.action === "insert") return "Created";
+    if (change.action === "delete") return "Deleted";
+    const before = change.changes?.before;
+    const after = change.changes?.after;
+    if (!before || !after) return "Updated";
+    const fields = [
+      "title",
+      "description",
+      "tags",
+      "ingredients",
+      "steps",
+      "prep_minutes",
+      "cook_minutes",
+      "servings",
+      "source_url",
+      "cover_photo_id",
+      "is_favorite",
+      "last_cooked_at",
+    ];
+    const changed = fields.filter((f) => JSON.stringify(before?.[f]) !== JSON.stringify(after?.[f]));
+    if (changed.length === 0) return "Updated";
+    const label = changed
+      .slice(0, 3)
+      .map((f) => f.replace(/_/g, " "))
+      .join(", ");
+    const extra = changed.length > 3 ? ` +${changed.length - 3}` : "";
+    return `Updated: ${label}${extra}`;
   }
   const canEdit = isOwner || sharePermission === "edit";
 
@@ -429,8 +610,19 @@ export default function RecipeDetailPage() {
             <Link to={`/recipes/${id}/cook`} className="btn">
               Cook Mode
             </Link>
+            {isOwner && (
+              <button className="btn" type="button" onClick={toggleFavorite}>
+                {recipe.is_favorite ? "Favorited" : "Favorite"}
+              </button>
+            )}
             <button className="btn" type="button" onClick={handleExportJson}>
               Export JSON
+            </button>
+            <button className="btn" type="button" onClick={handleExportMarkdown}>
+              Export Markdown
+            </button>
+            <button className="btn" type="button" onClick={handleExportPdf}>
+              Export PDF
             </button>
             {canEdit && (
               <Link to={`/recipes/${id}/edit`} className="btn">
@@ -626,6 +818,11 @@ export default function RecipeDetailPage() {
               </div>
             ))}
           </div>
+          {photoHasMore && (
+            <button className="btn" type="button" onClick={loadMorePhotos}>
+              Load more photos
+            </button>
+          )}
         </div>
       )}
       
@@ -688,7 +885,22 @@ export default function RecipeDetailPage() {
         </div>
       </div>
 
-      
+      {changes.length > 0 && (
+        <div className="card stack">
+          <div className="h2">Change log</div>
+          <div className="hr" />
+          <ul className="detail-list">
+            {changes.map((change) => (
+              <li key={change.id}>
+                <div style={{ fontWeight: 600 }}>{summarizeChange(change)}</div>
+                <div className="muted small">
+                  {new Date(change.changed_at).toLocaleString()}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {lightboxIndex !== null && photos[lightboxIndex]?.signed_url && (
         <div

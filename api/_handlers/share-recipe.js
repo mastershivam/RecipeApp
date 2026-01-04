@@ -61,7 +61,11 @@ export default async function handler(req, res) {
     }
 
     const ownerId = authData.user.id;
-    const recipeRes = await supabase.from("recipes").select("id,user_id").eq("id", recipeId).single();
+    const recipeRes = await supabase
+      .from("recipes")
+      .select("id,user_id,title")
+      .eq("id", recipeId)
+      .single();
     if (recipeRes.error || !recipeRes.data) {
       res.statusCode = 404;
       res.end("Recipe not found.");
@@ -114,7 +118,7 @@ export default async function handler(req, res) {
     }
 
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ share: { id: share.id, email: target.user.email, permission: share.permission } }));
+    res.end(JSON.stringify({ share: { id: share.id, email: targetUser.email, permission: share.permission } }));
   } catch (err) {
     res.statusCode = 500;
     res.end(err instanceof Error ? err.message : "Failed to share recipe.");

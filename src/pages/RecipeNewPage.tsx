@@ -4,10 +4,17 @@ import { v4 as uuid } from "uuid";
 import RecipeForm from "../ui/RecipeForm";
 import PhotoUploader from "../ui/PhotoUploader";
 import { addPhoto, invalidatePhotoCache } from "../lib/photoService";
-import { createRecipe, updateRecipe } from "../lib/recipeService";
+import { createRecipe, updateRecipe, listTagSuggestions } from "../lib/recipeService";
 import { useAuth } from "../auth/UseAuth";
 
-type PendingPhoto = { id: string; file: File; previewUrl: string };
+type PendingPhoto = {
+  id: string;
+  file: File;
+  previewUrl: string;
+  progress?: number;
+  status?: "pending" | "uploading" | "done" | "error";
+  error?: string | null;
+};
 
 export default function RecipeNewPage() {
   const nav = useNavigate();
@@ -23,11 +30,19 @@ export default function RecipeNewPage() {
   const [jsonImporting, setJsonImporting] = useState(false);
   const [jsonImportError, setJsonImportError] = useState<string | null>(null);
   const [jsonImportNotice, setJsonImportNotice] = useState<string | null>(null);
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
 
   function addPending(files: FileList) {
     const next: PendingPhoto[] = [];
     for (const f of Array.from(files)) {
-      next.push({ id: uuid(), file: f, previewUrl: URL.createObjectURL(f) });
+      next.push({
+        id: uuid(),
+        file: f,
+        previewUrl: URL.createObjectURL(f),
+        progress: 0,
+        status: "pending",
+        error: null,
+      });
     }
     setPending((prev) => [...prev, ...next]);
   }
@@ -43,6 +58,25 @@ export default function RecipeNewPage() {
   useEffect(() => {
     return () => pending.forEach((p) => URL.revokeObjectURL(p.previewUrl));
   }, [pending]);
+
+  useEffect(() => {
+    listTagSuggestions()
+      .then(setSuggestedTags)
+      .catch(() => setSuggestedTags([]));
+  }, []);
+
+  async function withRetry<T>(fn: () => Promise<T>, retries = 2, delayMs = 600): Promise<T> {
+    let attempt = 0;
+    while (true) {
+      try {
+        return await fn();
+      } catch (err) {
+        if (attempt >= retries) throw err;
+        await new Promise((resolve) => setTimeout(resolve, delayMs * (attempt + 1)));
+        attempt += 1;
+      }
+    }
+  }
 
   async function handleImport() {
     const url = importUrl.trim();
@@ -228,6 +262,7 @@ export default function RecipeNewPage() {
 
         <RecipeForm
           submitLabel="Create recipe"
+          suggestedTags={suggestedTags}
           onSubmit={async (draft) => {
             // 1) Create recipe row (Supabase generates id)
             const recipe = await createRecipe({
@@ -243,31 +278,60 @@ export default function RecipeNewPage() {
             });
 
             // 2) Upload photos + set cover
-          let firstPhotoId: string | null = null;
+            let firstPhotoId: string | null = null;
 
-          if (pending.length > 0) {
-            setUploading(true);
-            setUploadError(null);
-            try {
-              for (const p of pending) {
-                const uploaded = await addPhoto(recipe.id, p.file);
-                if (!firstPhotoId) firstPhotoId = uploaded.id;
-                URL.revokeObjectURL(p.previewUrl);
+            if (pending.length > 0) {
+              setUploading(true);
+              setUploadError(null);
+              try {
+                for (const p of pending) {
+                  setPending((prev) =>
+                    prev.map((item) =>
+                      item.id === p.id
+                        ? { ...item, status: "uploading", progress: 0, error: null }
+                        : item
+                    )
+                  );
+                  const uploaded = await withRetry(
+                    () =>
+                      addPhoto(recipe.id, p.file, (progress) => {
+                        setPending((prev) =>
+                          prev.map((item) =>
+                            item.id === p.id ? { ...item, progress } : item
+                          )
+                        );
+                      }),
+                    2
+                  );
+                  if (!firstPhotoId) firstPhotoId = uploaded.id;
+                  URL.revokeObjectURL(p.previewUrl);
+                  setPending((prev) =>
+                    prev.map((item) =>
+                      item.id === p.id ? { ...item, status: "done", progress: 100 } : item
+                    )
+                  );
+                }
+                setPending([]);
+              } catch (err: any) {
+                const msg = err?.message || "Photo upload failed. Please try again.";
+                setPending((prev) =>
+                  prev.map((item) =>
+                    item.status === "uploading"
+                      ? { ...item, status: "error", error: msg }
+                      : item
+                  )
+                );
+                setUploadError(`Recipe saved, but ${msg}`);
+                return;
+              } finally {
+                setUploading(false);
               }
-              setPending([]);
-            } catch (err: any) {
-              const msg = err?.message || "Photo upload failed. Please try again.";
-              setUploadError(`Recipe saved, but ${msg}`);
-              return;
-            } finally {
-              setUploading(false);
             }
-          }
 
-          if (firstPhotoId) {
-            await updateRecipe(recipe.id, { cover_photo_id: firstPhotoId });
-            invalidatePhotoCache(firstPhotoId);
-          }
+            if (firstPhotoId) {
+              await updateRecipe(recipe.id, { cover_photo_id: firstPhotoId });
+              invalidatePhotoCache(firstPhotoId);
+            }
 
             nav("/", { state: { toast: { type: "success", message: "Recipe saved." } } });
           }}

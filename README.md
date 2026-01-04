@@ -322,6 +322,12 @@ CREATE POLICY "Owners can manage group shares"
 
 -- Full-text search (server-side)
 -- Run supabase/fts.sql to add search_vector, trigger, and index.
+
+-- Recipe metadata (favorites + recently cooked)
+-- Run supabase/recipe_meta.sql to add is_favorite and last_cooked_at.
+
+-- Recipe change log (audit trail)
+-- Run supabase/recipe_audit.sql to add recipe_changes + triggers.
 ```
 
 ### 6. Set Up Storage Bucket
@@ -381,6 +387,47 @@ Server-side search uses PostgreSQL full-text search with a `search_vector` colum
 
 1. Run the SQL in `supabase/fts.sql` in your Supabase SQL editor.
 2. Use the search box on the recipe list page (supports web-style queries like `chicken "garlic butter"`).
+
+### Import / Export Formats
+
+Recipe Archive supports JSON import/export and Markdown export.
+
+**JSON schema (export/import)**
+
+```json
+{
+  "schemaVersion": 1,
+  "title": "Mushroom Wellington",
+  "description": "A rich, savory vegetarian centerpiece.",
+  "tags": ["Vegetarian", "Dinner"],
+  "ingredients": [{ "text": "2 tbsp olive oil" }, { "text": "500g mushrooms" }],
+  "steps": [{ "text": "Sauté mushrooms until dry." }, { "text": "Wrap and bake." }],
+  "prepMinutes": 20,
+  "cookMinutes": 45,
+  "servings": 4,
+  "sourceUrl": "https://example.com/recipe"
+}
+```
+
+**Markdown export example**
+
+```md
+# Mushroom Wellington
+
+A rich, savory vegetarian centerpiece.
+
+Prep: 20m • Cook: 45m • Serves: 4
+Tags: Vegetarian, Dinner
+Source: https://example.com/recipe
+
+## Ingredients
+- 2 tbsp olive oil
+- 500g mushrooms
+
+## Steps
+1. Sauté mushrooms until dry.
+2. Wrap and bake.
+```
 
 ### 7. Configure Google OAuth (Optional)
 

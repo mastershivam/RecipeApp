@@ -3,8 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import RecipeForm from "../ui/RecipeForm";
 import PhotoUploader from "../ui/PhotoUploader";
 import type { Recipe, RecipePhoto } from "../lib/types";
-import { getRecipe, updateRecipe, getSharePermission, type SharePermission } from "../lib/recipeService";
-import { addPhoto, deletePhoto, listPhotos, invalidatePhotoCache } from "../lib/photoService";
+import { getRecipe, updateRecipe, getSharePermission, listTagSuggestions, type SharePermission } from "../lib/recipeService";
+import { addPhoto, deletePhoto, listPhotosPage, invalidatePhotoCache } from "../lib/photoService";
 import { useAuth } from "../auth/UseAuth.ts";
 
 export default function RecipeEditPage() {
@@ -14,23 +14,67 @@ export default function RecipeEditPage() {
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [photos, setPhotos] = useState<RecipePhoto[]>([]);
+  const [photoPage, setPhotoPage] = useState(0);
+  const [photoHasMore, setPhotoHasMore] = useState(false);
+  const photoPageSize = 8;
   const [uploading, setUploading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadQueue, setUploadQueue] = useState<
+    {
+      id: string;
+      file: File;
+      previewUrl: string;
+      progress?: number;
+      status?: "uploading" | "done" | "error";
+      error?: string | null;
+    }[]
+  >([]);
   const [sharePermission, setSharePermission] = useState<SharePermission | null>(null);
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
 
   async function refresh() {
     if (!id) return;
     const r = await getRecipe(id);
     setRecipe(r);
-    const p = await listPhotos(id);
-    setPhotos(p);
+    const p = await listPhotosPage(id, { page: 0, pageSize: photoPageSize });
+    setPhotos(p.data);
+    setPhotoHasMore(p.hasMore);
+    setPhotoPage(0);
+  }
+
+  async function loadMorePhotos() {
+    if (!id || !photoHasMore) return;
+    const nextPage = photoPage + 1;
+    const p = await listPhotosPage(id, { page: nextPage, pageSize: photoPageSize });
+    setPhotos((prev) => [...prev, ...p.data]);
+    setPhotoHasMore(p.hasMore);
+    setPhotoPage(nextPage);
+  }
+
+  async function withRetry<T>(fn: () => Promise<T>, retries = 2, delayMs = 600): Promise<T> {
+    let attempt = 0;
+    while (true) {
+      try {
+        return await fn();
+      } catch (err) {
+        if (attempt >= retries) throw err;
+        await new Promise((resolve) => setTimeout(resolve, delayMs * (attempt + 1)));
+        attempt += 1;
+      }
+    }
   }
 
   useEffect(() => {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    listTagSuggestions()
+      .then(setSuggestedTags)
+      .catch(() => setSuggestedTags([]));
+  }, []);
 
   useEffect(() => {
     if (!id || !user) return;
@@ -125,14 +169,42 @@ export default function RecipeEditPage() {
             title="Photos"
             subtitle="Upload photos while editing. Saved automatically."
             isUploading={uploading}
+            pendingPhotos={uploadQueue}
             onFiles={async (files) => {
+              const incoming = Array.from(files).map((file) => ({
+                id: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2)}`,
+                file,
+                previewUrl: URL.createObjectURL(file),
+                progress: 0,
+                status: "uploading" as const,
+                error: null,
+              }));
+              setUploadQueue((prev) => [...prev, ...incoming]);
               setUploading(true);
               setUploadError(null);
               try {
-                for (const f of Array.from(files)) await addPhoto(id, f);
+                for (const item of incoming) {
+                  await withRetry(
+                    () =>
+                      addPhoto(id, item.file, (progress) => {
+                        setUploadQueue((prev) =>
+                          prev.map((q) => (q.id === item.id ? { ...q, progress } : q))
+                        );
+                      }),
+                    2
+                  );
+                  URL.revokeObjectURL(item.previewUrl);
+                  setUploadQueue((prev) => prev.filter((q) => q.id !== item.id));
+                }
                 await refresh();
               } catch (err: any) {
-                setUploadError(err?.message || "Photo upload failed. Please try again.");
+                const msg = err?.message || "Photo upload failed. Please try again.";
+                setUploadError(msg);
+                setUploadQueue((prev) =>
+                  prev.map((q) =>
+                    q.status === "uploading" ? { ...q, status: "error", error: msg } : q
+                  )
+                );
               } finally {
                 setUploading(false);
               }
@@ -187,14 +259,20 @@ export default function RecipeEditPage() {
                   </div>
                 ))}
               </div>
+              {photoHasMore && (
+                <button className="btn" type="button" onClick={loadMorePhotos}>
+                  Load more photos
+                </button>
+              )}
             </div>
           )}
         </div>
 
         {/* Your existing form (save disables button + shows inline errors) */}
-        <RecipeForm
-          submitLabel="Edit recipe"
-          initial={{
+          <RecipeForm
+            submitLabel="Edit recipe"
+            suggestedTags={suggestedTags}
+            initial={{
             // Adapt Supabase recipe -> RecipeForm's shape
             id: recipe.id as any,
             title: recipe.title,

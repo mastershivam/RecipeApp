@@ -8,3 +8,4 @@ if (!url || !anon) {
 }
 
 export const supabase = createClient(url, anon);
+export const supabaseUrl = url;

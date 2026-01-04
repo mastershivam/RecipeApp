@@ -13,6 +13,8 @@ export type Recipe = {
   servings?: number | null;
   source_url?: string | null;
   cover_photo_id?: string | null;
+  is_favorite?: boolean | null;
+  last_cooked_at?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -24,6 +26,15 @@ export type RecipePhoto = {
   storage_path: string;
   created_at: string;
   signed_url?: string; // computed client-side
+};
+
+export type RecipeChange = {
+  id: string;
+  recipe_id: string;
+  user_id?: string | null;
+  action: "insert" | "update" | "delete";
+  changes?: any;
+  changed_at: string;
 };
 
 export type GroupRole = "owner" | "admin" | "member";

@@ -1,6 +1,13 @@
 import { useRef } from "react";
 
-type PendingPhoto = { id: string; file: File; previewUrl: string };
+type PendingPhoto = {
+  id: string;
+  file: File;
+  previewUrl: string;
+  progress?: number;
+  status?: "pending" | "uploading" | "done" | "error";
+  error?: string | null;
+};
 
 export default function PhotoUploader({
   onFiles,
@@ -67,7 +74,23 @@ export default function PhotoUploader({
                 <div className="gallery-media">
                   <img className="thumb" src={p.previewUrl} alt="" />
                 </div>
-                {onRemovePending && (
+                {typeof p.progress === "number" && (
+                  <div className="progress-track" style={{ marginTop: 8 }}>
+                    <div
+                      className="progress-bar static"
+                      style={{ width: `${Math.min(100, Math.max(0, p.progress))}%` }}
+                    />
+                  </div>
+                )}
+                {p.status && (
+                  <div className="muted small" style={{ marginTop: 6 }}>
+                    {p.status === "uploading" && "Uploading…"}
+                    {p.status === "done" && "Uploaded"}
+                    {p.status === "error" && (p.error || "Upload failed")}
+                    {p.status === "pending" && "Ready to upload"}
+                  </div>
+                )}
+                {onRemovePending && p.status !== "uploading" && (
                   <button
                     className="btn"
                     type="button"

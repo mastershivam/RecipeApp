@@ -886,6 +886,9 @@ html[data-theme="dark"] .textarea::placeholder {
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 10px;
   align-items: stretch;
+  justify-items: stretch;
+  width: 100%;
+  grid-auto-flow: row;
 }
 
 .gallery-item {
@@ -903,6 +906,8 @@ html[data-theme="dark"] .textarea::placeholder {
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--surface-1);
+  width: 100%;
+  aspect-ratio: 4 / 3;
 }
 
 .gallery-media .thumb {
@@ -910,7 +915,6 @@ html[data-theme="dark"] .textarea::placeholder {
   border-radius: 0;
   width: 100%;
   height: 100%;
-  aspect-ratio: 4 / 3;
   object-fit: cover;
   display: block;
 }
@@ -1159,9 +1163,16 @@ html[data-theme="dark"] .textarea::placeholder {
 
   .gallery {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
   }
 
   .stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .gallery {
     grid-template-columns: 1fr;
   }
 }

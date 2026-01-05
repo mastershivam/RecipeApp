@@ -88,12 +88,40 @@ export async function inviteToGroup(groupId: string, email: string, role: GroupR
 
 export async function respondToInvite(groupId: string, accept: boolean) {
   const token = await getAccessToken();
-  const res = await fetch("/api/group-respond", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ groupId, accept }),
-  });
-  if (!res.ok) throw new Error(await res.text());
+  try {
+    const res = await fetch("/api/group-respond", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ groupId, accept }),
+    });
+    if (res.ok) return;
+    const detail = await res.text();
+    if (res.status !== 404) {
+      throw new Error(detail || `Invite update failed (${res.status})`);
+    }
+  } catch (err: any) {
+    if (err instanceof Error && !err.message.includes("404")) {
+      throw err;
+    }
+  }
+
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  if (userErr) throw new Error(userErr.message);
+  const user = userData.user;
+  if (!user) throw new Error("Not authenticated");
+
+  const status = accept ? "accepted" : "declined";
+  const { data, error } = await supabase
+    .from("group_members")
+    .update({ status })
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Invite not found.");
 }
 
 export async function listGroupMembers(groupId: string) {

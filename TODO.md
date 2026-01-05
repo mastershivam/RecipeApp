@@ -5,6 +5,7 @@
 
 ## Next
 - Recipe import improvements (retries + source parsing fallbacks).
+- New recipe suggestion based on ingredients (ai)
 - Bulk tag editor + tag merge tool.
 - Smart shopping list generation (ingredients aggregation + scaling).
 - Meal planning calendar view.

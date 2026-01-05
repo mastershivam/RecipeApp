@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/UseAuth.ts";
+import InboxPanel from "./InboxPanel.tsx";
+import { useInboxData } from "./useInboxData.ts";
 
 export default function AppLayout() {
   const loc = useLocation();
@@ -29,6 +31,21 @@ export default function AppLayout() {
   }, [loc.pathname]);
 
   const [canShare, setCanShare] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const bellRef = useRef<HTMLButtonElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+  const {
+    invites,
+    shares,
+    loading,
+    error,
+    busyGroupId,
+    handleInvite,
+    markShareSeen,
+    clearAllShares,
+  } = useInboxData();
+  const pendingCount = invites.length + shares.length;
+  const pendingLabel = pendingCount > 9 ? "9+" : `${pendingCount}`;
 
   const isLibrary =
     loc.pathname === "/" ||
@@ -50,6 +67,29 @@ export default function AppLayout() {
   useEffect(() => {
     if (!isDetail) setCanShare(false);
   }, [isDetail]);
+
+  useEffect(() => {
+    if (!inboxOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setInboxOpen(false);
+    }
+    function onPointerDown(event: MouseEvent) {
+      const target = event.target as Node | null;
+      if (popoverRef.current?.contains(target)) return;
+      if (bellRef.current?.contains(target)) return;
+      setInboxOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("mousedown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("mousedown", onPointerDown);
+    };
+  }, [inboxOpen]);
+
+  useEffect(() => {
+    setInboxOpen(false);
+  }, [loc.pathname]);
 
   return (
     <div className="app-shell">
@@ -73,9 +113,6 @@ export default function AppLayout() {
           <div className="nav-title">Browse</div>
           <Link className={`nav-item ${isLibrary ? "active" : ""}`} to="/">
             All recipes
-          </Link>
-          <Link className={`nav-item ${loc.pathname === "/inbox" ? "active" : ""}`} to="/inbox">
-            Sharing inbox
           </Link>
           <Link className={`nav-item ${loc.pathname === "/shared" ? "active" : ""}`} to="/shared">
             Shared with you
@@ -110,7 +147,7 @@ export default function AppLayout() {
             <div className="page-title">{pageTitle}</div>
           </div>
 
-          <div className="row" style={{ flex: 0, gap: 8 }}>
+          <div className="topbar-actions">
             {isDetail && canShare && (
               <button
                 className="btn"
@@ -124,6 +161,42 @@ export default function AppLayout() {
               <Link to="/recipes/new" className="btn primary">
                 New Recipe
               </Link>
+            )}
+            <button
+              className="inbox-bell"
+              type="button"
+              aria-label={
+                pendingCount > 0 ? `Sharing inbox (${pendingCount} pending)` : "Sharing inbox"
+              }
+              aria-haspopup="dialog"
+              aria-expanded={inboxOpen}
+              onClick={() => setInboxOpen((prev) => !prev)}
+              ref={bellRef}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path
+                  d="M12 22a2.6 2.6 0 0 0 2.6-2.6H9.4A2.6 2.6 0 0 0 12 22Zm7-6.4V11a7 7 0 1 0-14 0v4.6L3 18v1.2h18V18l-2-2.4Z"
+                  fill="currentColor"
+                />
+              </svg>
+              {pendingCount > 0 && <span className="notify-badge">{pendingLabel}</span>}
+            </button>
+            {inboxOpen && (
+              <div className="inbox-popover" ref={popoverRef} role="dialog" aria-label="Sharing inbox">
+                <InboxPanel
+                  variant="popover"
+                  invites={invites}
+                  shares={shares}
+                  loading={loading}
+                  error={error}
+                  busyGroupId={busyGroupId}
+                  onInvite={handleInvite}
+                  onOpenShare={markShareSeen}
+                  onDismissShare={markShareSeen}
+                  onClearShares={clearAllShares}
+                  onNavigate={() => setInboxOpen(false)}
+                />
+              </div>
             )}
           </div>
         </div>

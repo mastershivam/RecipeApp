@@ -54,19 +54,29 @@ function normalizeSuggestions(payload) {
     (Array.isArray(items) ? items : [])
       .map((item) => {
         if (!item || typeof item !== "object") return null;
-        const changes = Array.isArray(item.changes)
-          ? item.changes
-          : typeof item.changes === "string"
-            ? [item.changes]
-            : [];
+        const rawChange =
+          typeof item.change === "string"
+            ? item.change
+            : typeof item.changes === "string"
+              ? item.changes
+              : Array.isArray(item.changes)
+                ? item.changes.join(" · ")
+                : "";
+        const rational =
+          typeof item.rational === "string"
+            ? item.rational
+            : typeof item.rationale === "string"
+              ? item.rationale
+              : typeof item.summary === "string"
+                ? item.summary
+                : "";
         return {
           title: typeof item.title === "string" ? item.title : "Suggestion",
-          rationale: typeof item.rationale === "string" ? item.rationale : undefined,
-          summary: typeof item.summary === "string" ? item.summary : undefined,
-          changes: changes.map((change) => String(change)).filter(Boolean),
+          rational,
+          change: rawChange,
         };
       })
-      .filter(Boolean);
+      .filter((item) => item && (item.title || item.rational || item.change));
   return {
     improvements: normalizeItems(payload?.improvements),
     alternatives: normalizeItems(payload?.alternatives),
@@ -148,7 +158,7 @@ export default async function handler(req, res) {
           {
             role: "system",
             content:
-              "You are a culinary assistant. Respond only with JSON: {improvements:[{title,rationale,changes}], alternatives:[{title,summary,changes}]}. Provide 3-5 items per list. Changes are short strings, no bullets. Keep wording concise and actionable.",
+              "You are a Michelin star chef who's looking to make this recipe as it is their partner's favorite dish. Respond only with JSON: {improvements:[{title,rational,change}], alternatives:[{title,rational,change}]}. Provide either three or four items per list but make the lists different lengths. Rational briefly explains why; change is a concise, actionable sentence. Keep wording concise and avoid bullets, while being aware of the tags.",
           },
           {
             role: "user",

@@ -4,8 +4,8 @@ import type { Recipe, RecipeChange } from "./types";
 export type SharePermission = "view" | "edit";
 export type SharedRecipe = { recipe: Recipe; permission: SharePermission };
 export type RecipeSuggestions = {
-  improvements: { title: string; rationale?: string; changes: string[] }[];
-  alternatives: { title: string; summary?: string; changes: string[] }[];
+  improvements: { title: string; rational?: string; change?: string }[];
+  alternatives: { title: string; rational?: string; change?: string }[];
 };
 type PermissionRank = 0 | 1;
 

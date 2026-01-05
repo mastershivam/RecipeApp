@@ -772,7 +772,7 @@ export default function RecipeDetailPage() {
                           <div key={`${item.title}-${idx}`} className="card">
                             <div style={{ fontWeight: 600 }}>{item.title}</div>
                             {item.rationale && <div className="muted small">{item.rationale}</div>}
-                            {item.changes?.length > 0 && (
+                            {Array.isArray(item.changes) && item.changes.length > 0 && (
                               <ul className="detail-list">
                                 {item.changes.map((change, changeIdx) => (
                                   <li key={`${item.title}-change-${changeIdx}`}>{change}</li>
@@ -796,7 +796,7 @@ export default function RecipeDetailPage() {
                           <div key={`${item.title}-${idx}`} className="card">
                             <div style={{ fontWeight: 600 }}>{item.title}</div>
                             {item.summary && <div className="muted small">{item.summary}</div>}
-                            {item.changes?.length > 0 && (
+                            {Array.isArray(item.changes) && item.changes.length > 0 && (
                               <ul className="detail-list">
                                 {item.changes.map((change, changeIdx) => (
                                   <li key={`${item.title}-alt-${changeIdx}`}>{change}</li>

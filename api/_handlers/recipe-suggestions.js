@@ -50,9 +50,27 @@ async function loadRecipeWithAccess(supabase, recipeId, userId) {
 }
 
 function normalizeSuggestions(payload) {
-  const improvements = Array.isArray(payload?.improvements) ? payload.improvements : [];
-  const alternatives = Array.isArray(payload?.alternatives) ? payload.alternatives : [];
-  return { improvements, alternatives };
+  const normalizeItems = (items) =>
+    (Array.isArray(items) ? items : [])
+      .map((item) => {
+        if (!item || typeof item !== "object") return null;
+        const changes = Array.isArray(item.changes)
+          ? item.changes
+          : typeof item.changes === "string"
+            ? [item.changes]
+            : [];
+        return {
+          title: typeof item.title === "string" ? item.title : "Suggestion",
+          rationale: typeof item.rationale === "string" ? item.rationale : undefined,
+          summary: typeof item.summary === "string" ? item.summary : undefined,
+          changes: changes.map((change) => String(change)).filter(Boolean),
+        };
+      })
+      .filter(Boolean);
+  return {
+    improvements: normalizeItems(payload?.improvements),
+    alternatives: normalizeItems(payload?.alternatives),
+  };
 }
 
 export default async function handler(req, res) {

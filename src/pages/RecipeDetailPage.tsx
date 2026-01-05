@@ -729,7 +729,7 @@ export default function RecipeDetailPage() {
           <div className="modal-overlay suggestions-modal" onClick={() => setSuggestionsOpen(false)}>
             <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <div>
+                <div className="suggestions-title">
                   <div className="h2">AI suggestions</div>
                   <div className="muted small">Improvements and alternatives for this recipe.</div>
                 </div>

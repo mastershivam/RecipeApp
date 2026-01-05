@@ -1006,6 +1006,30 @@ html[data-theme="dark"] .textarea::placeholder {
   gap: 12px;
 }
 
+.suggestions-modal .modal-panel {
+  width: min(860px, 94vw);
+}
+
+.suggestions-modal .suggestion-card {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.suggestions-list {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  list-style: disc;
+  display: grid;
+  gap: 8px;
+}
+
+.suggestions-list li {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
 @media (max-width: 640px) {
   .share-row {
     flex-direction: column;

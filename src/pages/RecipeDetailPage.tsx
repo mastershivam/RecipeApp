@@ -726,7 +726,7 @@ export default function RecipeDetailPage() {
         )}
 
         {suggestionsOpen && (
-          <div className="modal-overlay" onClick={() => setSuggestionsOpen(false)}>
+          <div className="modal-overlay suggestions-modal" onClick={() => setSuggestionsOpen(false)}>
             <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <div>
@@ -769,11 +769,11 @@ export default function RecipeDetailPage() {
                     ) : (
                       <div className="stack">
                         {suggestions.improvements.map((item, idx) => (
-                          <div key={`${item.title}-${idx}`} className="card">
+                          <div key={`${item.title}-${idx}`} className="card suggestion-card">
                             <div style={{ fontWeight: 600 }}>{item.title}</div>
                             {item.rationale && <div className="muted small">{item.rationale}</div>}
                             {Array.isArray(item.changes) && item.changes.length > 0 && (
-                              <ul className="detail-list">
+                              <ul className="suggestions-list">
                                 {item.changes.map((change, changeIdx) => (
                                   <li key={`${item.title}-change-${changeIdx}`}>{change}</li>
                                 ))}
@@ -793,11 +793,11 @@ export default function RecipeDetailPage() {
                     ) : (
                       <div className="stack">
                         {suggestions.alternatives.map((item, idx) => (
-                          <div key={`${item.title}-${idx}`} className="card">
+                          <div key={`${item.title}-${idx}`} className="card suggestion-card">
                             <div style={{ fontWeight: 600 }}>{item.title}</div>
                             {item.summary && <div className="muted small">{item.summary}</div>}
                             {Array.isArray(item.changes) && item.changes.length > 0 && (
-                              <ul className="detail-list">
+                              <ul className="suggestions-list">
                                 {item.changes.map((change, changeIdx) => (
                                   <li key={`${item.title}-alt-${changeIdx}`}>{change}</li>
                                 ))}

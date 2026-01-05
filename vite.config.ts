@@ -29,6 +29,7 @@ export default defineConfig({
             const search = url.search ? `&${url.search.slice(1)}` : "";
             req.url = `/api/index?path=${encodeURIComponent(path)}${search}`;
 
+            // @ts-expect-error dev-only JS handler without types
             const { default: handler } = await import("./api/index.js");
             await handler(req, res);
           } catch (err) {

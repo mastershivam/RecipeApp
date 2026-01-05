@@ -1028,8 +1028,6 @@ html[data-theme="dark"] .textarea::placeholder {
 }
 
 .suggestions-modal .modal-header {
-  position: sticky;
-  top: 0;
   background: transparent;
   padding-bottom: 12px;
   z-index: 1;

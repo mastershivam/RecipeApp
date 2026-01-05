@@ -770,7 +770,7 @@ export default function RecipeDetailPage() {
               Export
             </button>
             <button className="btn" type="button" onClick={openSuggestions}>
-              AI suggestions
+              AI Suggestions
             </button>
             {canEdit && (
               <Link to={`/recipes/${id}/edit`} className="btn">

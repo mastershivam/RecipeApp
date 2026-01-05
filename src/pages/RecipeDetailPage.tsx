@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Recipe, RecipeChange, RecipePhoto } from "../lib/types";
-import { getRecipe, deleteRecipe, updateRecipe, listRecipeChanges, getSharePermission, type SharePermission } from "../lib/recipeService";
+import {
+  getRecipe,
+  deleteRecipe,
+  updateRecipe,
+  listRecipeChanges,
+  getSharePermission,
+  getRecipeSuggestions,
+  type SharePermission,
+  type RecipeSuggestions,
+} from "../lib/recipeService";
 import { listPhotosPage } from "../lib/photoService";
 import { useAuth } from "../auth/UseAuth.ts";
 import {
@@ -43,6 +52,10 @@ export default function RecipeDetailPage() {
   const [unitMode, setUnitMode] = useState<"auto" | "imperial" | "metric">("auto");
   const [changes, setChanges] = useState<RecipeChange[]>([]);
   const [exportOpen, setExportOpen] = useState(false);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [suggestionsStatus, setSuggestionsStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [suggestionsError, setSuggestionsError] = useState("");
+  const [suggestions, setSuggestions] = useState<RecipeSuggestions | null>(null);
 
   async function refresh() {
     if (!id) return;
@@ -216,6 +229,27 @@ export default function RecipeDetailPage() {
     const next = !recipe.is_favorite;
     await updateRecipe(recipe.id, { is_favorite: next });
     setRecipe((prev) => (prev ? { ...prev, is_favorite: next } : prev));
+  }
+
+  async function loadSuggestions(force = false) {
+    if (!id) return;
+    if (suggestionsStatus === "loading") return;
+    if (!force && suggestions) return;
+    setSuggestionsStatus("loading");
+    setSuggestionsError("");
+    try {
+      const data = await getRecipeSuggestions(id);
+      setSuggestions(data);
+      setSuggestionsStatus("idle");
+    } catch (err) {
+      setSuggestionsStatus("error");
+      setSuggestionsError(err instanceof Error ? err.message : "Failed to load suggestions.");
+    }
+  }
+
+  function openSuggestions() {
+    setSuggestionsOpen(true);
+    loadSuggestions();
   }
 
   async function loadMorePhotos() {
@@ -641,6 +675,9 @@ export default function RecipeDetailPage() {
             <button className="btn" type="button" onClick={() => setExportOpen((v) => !v)}>
               Export
             </button>
+            <button className="btn" type="button" onClick={openSuggestions}>
+              AI suggestions
+            </button>
             {canEdit && (
               <Link to={`/recipes/${id}/edit`} className="btn">
                 Edit
@@ -684,6 +721,95 @@ export default function RecipeDetailPage() {
                   PDF
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {suggestionsOpen && (
+          <div className="modal-overlay" onClick={() => setSuggestionsOpen(false)}>
+            <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <div>
+                  <div className="h2">AI suggestions</div>
+                  <div className="muted small">Improvements and alternatives for this recipe.</div>
+                </div>
+                <div className="row" style={{ alignItems: "center" }}>
+                  <button
+                    className="btn ghost"
+                    type="button"
+                    onClick={() => loadSuggestions(true)}
+                    disabled={suggestionsStatus === "loading"}
+                  >
+                    {suggestionsStatus === "loading" ? "Refreshing..." : "Refresh"}
+                  </button>
+                  <button className="btn ghost" type="button" onClick={() => setSuggestionsOpen(false)}>
+                    Close
+                  </button>
+                </div>
+              </div>
+
+              {suggestionsStatus === "loading" && (
+                <div className="card muted">Generating suggestions...</div>
+              )}
+
+              {suggestionsStatus === "error" && (
+                <div className="card">
+                  <div style={{ fontWeight: 600 }}>Could not load suggestions.</div>
+                  <div className="muted small">{suggestionsError}</div>
+                </div>
+              )}
+
+              {suggestions && suggestionsStatus !== "loading" && (
+                <div className="stack">
+                  <div className="card stack">
+                    <div className="h2">Improvements</div>
+                    <div className="hr" />
+                    {(suggestions.improvements ?? []).length === 0 ? (
+                      <div className="muted small">No improvements returned.</div>
+                    ) : (
+                      <div className="stack">
+                        {suggestions.improvements.map((item, idx) => (
+                          <div key={`${item.title}-${idx}`} className="card">
+                            <div style={{ fontWeight: 600 }}>{item.title}</div>
+                            {item.rationale && <div className="muted small">{item.rationale}</div>}
+                            {item.changes?.length > 0 && (
+                              <ul className="detail-list">
+                                {item.changes.map((change, changeIdx) => (
+                                  <li key={`${item.title}-change-${changeIdx}`}>{change}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="card stack">
+                    <div className="h2">Alternatives</div>
+                    <div className="hr" />
+                    {(suggestions.alternatives ?? []).length === 0 ? (
+                      <div className="muted small">No alternatives returned.</div>
+                    ) : (
+                      <div className="stack">
+                        {suggestions.alternatives.map((item, idx) => (
+                          <div key={`${item.title}-${idx}`} className="card">
+                            <div style={{ fontWeight: 600 }}>{item.title}</div>
+                            {item.summary && <div className="muted small">{item.summary}</div>}
+                            {item.changes?.length > 0 && (
+                              <ul className="detail-list">
+                                {item.changes.map((change, changeIdx) => (
+                                  <li key={`${item.title}-alt-${changeIdx}`}>{change}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

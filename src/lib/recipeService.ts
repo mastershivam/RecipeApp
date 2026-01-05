@@ -3,10 +3,22 @@ import type { Recipe, RecipeChange } from "./types";
 
 export type SharePermission = "view" | "edit";
 export type SharedRecipe = { recipe: Recipe; permission: SharePermission };
+export type RecipeSuggestions = {
+  improvements: { title: string; rationale?: string; changes: string[] }[];
+  alternatives: { title: string; summary?: string; changes: string[] }[];
+};
 type PermissionRank = 0 | 1;
 
 function permissionScore(permission: SharePermission): PermissionRank {
   return permission === "edit" ? 1 : 0;
+}
+
+async function getAccessToken(): Promise<string> {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw new Error(error.message);
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Not authenticated");
+  return token;
 }
 
 export async function listRecipes(options?: {
@@ -228,6 +240,17 @@ export async function listTagSuggestions(): Promise<string[]> {
     (row.tags ?? []).forEach((t: string) => tags.add(t));
   });
   return Array.from(tags).sort();
+}
+
+export async function getRecipeSuggestions(recipeId: string): Promise<RecipeSuggestions> {
+  const token = await getAccessToken();
+  const res = await fetch("/api/recipe-suggestions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ recipeId }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return (await res.json()) as RecipeSuggestions;
 }
 
 export async function listRecipeChanges(recipeId: string): Promise<RecipeChange[]> {

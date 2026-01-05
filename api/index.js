@@ -17,6 +17,7 @@ import groupShareUpdate from "./_handlers/group-share-update.js";
 import groupShareDelete from "./_handlers/group-share-delete.js";
 import groupRoleUpdate from "./_handlers/group-role-update.js";
 import recipeImport from "./_handlers/recipe-import.js";
+import recipeSuggestions from "./_handlers/recipe-suggestions.js";
 
 const routes = {
   "stats": stats,
@@ -38,6 +39,7 @@ const routes = {
   "group-share-delete": groupShareDelete,
   "group-role-update": groupRoleUpdate,
   "recipe-import": recipeImport,
+  "recipe-suggestions": recipeSuggestions,
 };
 
 function getRoute(req) {

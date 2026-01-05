@@ -253,6 +253,24 @@ export default function RecipeDetailPage() {
     loadSuggestions();
   }
 
+  function formatAlternativeDetails(item: { summary?: string; changes?: string[] }) {
+    const summary = item.summary?.trim();
+    const changes = Array.isArray(item.changes) ? item.changes.filter(Boolean) : [];
+    if (summary && changes.length > 0) return `${summary}. ${changes.join(" · ")}`;
+    if (summary) return summary;
+    if (changes.length > 0) return changes.join(" · ");
+    return "";
+  }
+
+  function formatImprovementDetails(item: { rationale?: string; changes?: string[] }) {
+    const rationale = item.rationale?.trim();
+    const changes = Array.isArray(item.changes) ? item.changes.filter(Boolean) : [];
+    if (rationale && changes.length > 0) return `${rationale}. ${changes.join(" · ")}`;
+    if (rationale) return rationale;
+    if (changes.length > 0) return changes.join(" · ");
+    return "";
+  }
+
   const suggestionsModal =
     suggestionsOpen && typeof document !== "undefined"
       ? createPortal(
@@ -301,13 +319,10 @@ export default function RecipeDetailPage() {
                         {suggestions.improvements.map((item, idx) => (
                           <div key={`${item.title}-${idx}`} className="card suggestion-card">
                             <div style={{ fontWeight: 600 }}>{item.title}</div>
-                            {item.rationale && <div className="muted small">{item.rationale}</div>}
-                            {Array.isArray(item.changes) && item.changes.length > 0 && (
-                              <ul className="suggestions-list">
-                                {item.changes.map((change, changeIdx) => (
-                                  <li key={`${item.title}-change-${changeIdx}`}>{change}</li>
-                                ))}
-                              </ul>
+                            {formatImprovementDetails(item) ? (
+                              <div className="muted">{formatImprovementDetails(item)}</div>
+                            ) : (
+                              <div className="muted small">No details provided.</div>
                             )}
                           </div>
                         ))}
@@ -325,13 +340,10 @@ export default function RecipeDetailPage() {
                         {suggestions.alternatives.map((item, idx) => (
                           <div key={`${item.title}-${idx}`} className="card suggestion-card">
                             <div style={{ fontWeight: 600 }}>{item.title}</div>
-                            {item.summary && <div className="muted small">{item.summary}</div>}
-                            {Array.isArray(item.changes) && item.changes.length > 0 && (
-                              <ul className="suggestions-list">
-                                {item.changes.map((change, changeIdx) => (
-                                  <li key={`${item.title}-alt-${changeIdx}`}>{change}</li>
-                                ))}
-                              </ul>
+                            {formatAlternativeDetails(item) ? (
+                              <div className="muted">{formatAlternativeDetails(item)}</div>
+                            ) : (
+                              <div className="muted small">No details provided.</div>
                             )}
                           </div>
                         ))}

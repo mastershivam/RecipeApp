@@ -217,7 +217,7 @@ html[data-theme="light"] .brand-mark svg {
   box-shadow: var(--shadow);
   backdrop-filter: blur(16px);
   position: relative;
-  z-index: 1600;
+  z-index: 2000;
 }
 
 .topbar .btn {
@@ -1012,15 +1012,15 @@ html[data-theme="dark"] .textarea::placeholder {
 }
 
 .suggestions-modal {
-  z-index: 1500;
+  z-index: 1900;
   place-items: start center;
   padding-top: 120px;
 }
 
 .suggestions-title {
-  background: rgba(8, 10, 14, 0.85);
+  background: var(--panel);
   padding: 12px;
-  border-radius: 14px;
+  border-radius: 16px;
   border: 1px solid var(--border);
   display: flex;
   flex-direction: column;

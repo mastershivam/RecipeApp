@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Recipe, RecipeChange, RecipePhoto } from "../lib/types";
 import {
@@ -251,6 +252,99 @@ export default function RecipeDetailPage() {
     setSuggestionsOpen(true);
     loadSuggestions();
   }
+
+  const suggestionsModal =
+    suggestionsOpen && typeof document !== "undefined"
+      ? createPortal(
+          <div className="modal-overlay suggestions-modal" onClick={() => setSuggestionsOpen(false)}>
+            <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <div className="suggestions-title">
+                  <div className="h2">AI suggestions</div>
+                  <div className="muted small">Improvements and alternatives for this recipe.</div>
+                </div>
+                <div className="row" style={{ alignItems: "center" }}>
+                  <button
+                    className="btn ghost"
+                    type="button"
+                    onClick={() => loadSuggestions(true)}
+                    disabled={suggestionsStatus === "loading"}
+                  >
+                    {suggestionsStatus === "loading" ? "Refreshing..." : "Refresh"}
+                  </button>
+                  <button className="btn ghost" type="button" onClick={() => setSuggestionsOpen(false)}>
+                    Close
+                  </button>
+                </div>
+              </div>
+
+              {suggestionsStatus === "loading" && (
+                <div className="card muted">Generating suggestions...</div>
+              )}
+
+              {suggestionsStatus === "error" && (
+                <div className="card">
+                  <div style={{ fontWeight: 600 }}>Could not load suggestions.</div>
+                  <div className="muted small">{suggestionsError}</div>
+                </div>
+              )}
+
+              {suggestions && suggestionsStatus !== "loading" && (
+                <div className="stack">
+                  <div className="card stack">
+                    <div className="h2">Improvements</div>
+                    <div className="hr" />
+                    {(suggestions.improvements ?? []).length === 0 ? (
+                      <div className="muted small">No improvements returned.</div>
+                    ) : (
+                      <div className="stack">
+                        {suggestions.improvements.map((item, idx) => (
+                          <div key={`${item.title}-${idx}`} className="card suggestion-card">
+                            <div style={{ fontWeight: 600 }}>{item.title}</div>
+                            {item.rationale && <div className="muted small">{item.rationale}</div>}
+                            {Array.isArray(item.changes) && item.changes.length > 0 && (
+                              <ul className="suggestions-list">
+                                {item.changes.map((change, changeIdx) => (
+                                  <li key={`${item.title}-change-${changeIdx}`}>{change}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="card stack">
+                    <div className="h2">Alternatives</div>
+                    <div className="hr" />
+                    {(suggestions.alternatives ?? []).length === 0 ? (
+                      <div className="muted small">No alternatives returned.</div>
+                    ) : (
+                      <div className="stack">
+                        {suggestions.alternatives.map((item, idx) => (
+                          <div key={`${item.title}-${idx}`} className="card suggestion-card">
+                            <div style={{ fontWeight: 600 }}>{item.title}</div>
+                            {item.summary && <div className="muted small">{item.summary}</div>}
+                            {Array.isArray(item.changes) && item.changes.length > 0 && (
+                              <ul className="suggestions-list">
+                                {item.changes.map((change, changeIdx) => (
+                                  <li key={`${item.title}-alt-${changeIdx}`}>{change}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
 
   async function loadMorePhotos() {
     if (!id || !photoHasMore) return;
@@ -725,94 +819,7 @@ export default function RecipeDetailPage() {
           </div>
         )}
 
-        {suggestionsOpen && (
-          <div className="modal-overlay suggestions-modal" onClick={() => setSuggestionsOpen(false)}>
-            <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <div className="suggestions-title">
-                  <div className="h2">AI suggestions</div>
-                  <div className="muted small">Improvements and alternatives for this recipe.</div>
-                </div>
-                <div className="row" style={{ alignItems: "center" }}>
-                  <button
-                    className="btn ghost"
-                    type="button"
-                    onClick={() => loadSuggestions(true)}
-                    disabled={suggestionsStatus === "loading"}
-                  >
-                    {suggestionsStatus === "loading" ? "Refreshing..." : "Refresh"}
-                  </button>
-                  <button className="btn ghost" type="button" onClick={() => setSuggestionsOpen(false)}>
-                    Close
-                  </button>
-                </div>
-              </div>
-
-              {suggestionsStatus === "loading" && (
-                <div className="card muted">Generating suggestions...</div>
-              )}
-
-              {suggestionsStatus === "error" && (
-                <div className="card">
-                  <div style={{ fontWeight: 600 }}>Could not load suggestions.</div>
-                  <div className="muted small">{suggestionsError}</div>
-                </div>
-              )}
-
-              {suggestions && suggestionsStatus !== "loading" && (
-                <div className="stack">
-                  <div className="card stack">
-                    <div className="h2">Improvements</div>
-                    <div className="hr" />
-                    {(suggestions.improvements ?? []).length === 0 ? (
-                      <div className="muted small">No improvements returned.</div>
-                    ) : (
-                      <div className="stack">
-                        {suggestions.improvements.map((item, idx) => (
-                          <div key={`${item.title}-${idx}`} className="card suggestion-card">
-                            <div style={{ fontWeight: 600 }}>{item.title}</div>
-                            {item.rationale && <div className="muted small">{item.rationale}</div>}
-                            {Array.isArray(item.changes) && item.changes.length > 0 && (
-                              <ul className="suggestions-list">
-                                {item.changes.map((change, changeIdx) => (
-                                  <li key={`${item.title}-change-${changeIdx}`}>{change}</li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="card stack">
-                    <div className="h2">Alternatives</div>
-                    <div className="hr" />
-                    {(suggestions.alternatives ?? []).length === 0 ? (
-                      <div className="muted small">No alternatives returned.</div>
-                    ) : (
-                      <div className="stack">
-                        {suggestions.alternatives.map((item, idx) => (
-                          <div key={`${item.title}-${idx}`} className="card suggestion-card">
-                            <div style={{ fontWeight: 600 }}>{item.title}</div>
-                            {item.summary && <div className="muted small">{item.summary}</div>}
-                            {Array.isArray(item.changes) && item.changes.length > 0 && (
-                              <ul className="suggestions-list">
-                                {item.changes.map((change, changeIdx) => (
-                                  <li key={`${item.title}-alt-${changeIdx}`}>{change}</li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {suggestionsModal}
 
         <div className="detail-hero-media">
           {(() => {

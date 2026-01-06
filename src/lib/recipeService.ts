@@ -263,3 +263,45 @@ export async function listRecipeChanges(recipeId: string): Promise<RecipeChange[
   if (error) throw new Error(error.message);
   return (data ?? []) as RecipeChange[];
 }
+
+export async function rollbackRecipe(recipeId: string, changeId: string): Promise<Recipe> {
+  const { data: changeData, error: changeError } = await supabase
+    .from("recipe_changes")
+    .select("*")
+    .eq("id", changeId)
+    .eq("recipe_id", recipeId)
+    .maybeSingle();
+
+  if (changeError) throw new Error(changeError.message);
+  if (!changeData) throw new Error("Change record not found");
+
+  const change = changeData as RecipeChange;
+  if (change.action === "delete") {
+    throw new Error("Cannot rollback a delete action");
+  }
+
+  // Get the version to restore - use the "after" state (what the recipe was after this change)
+  // This allows rolling back to the state at that point in time
+  const versionToRestore = change.changes?.after;
+  if (!versionToRestore) {
+    throw new Error("No version data found in change record");
+  }
+
+  // Restore the recipe to the version after this change
+  const patch: Partial<Omit<Recipe, "id" | "user_id" | "created_at">> = {
+    title: versionToRestore.title,
+    description: versionToRestore.description ?? null,
+    tags: versionToRestore.tags ?? [],
+    ingredients: versionToRestore.ingredients ?? [],
+    steps: versionToRestore.steps ?? [],
+    prep_minutes: versionToRestore.prep_minutes ?? null,
+    cook_minutes: versionToRestore.cook_minutes ?? null,
+    servings: versionToRestore.servings ?? null,
+    source_url: versionToRestore.source_url ?? null,
+    cover_photo_id: versionToRestore.cover_photo_id ?? null,
+    is_favorite: versionToRestore.is_favorite ?? null,
+    last_cooked_at: versionToRestore.last_cooked_at ?? null,
+  };
+
+  return updateRecipe(recipeId, patch);
+}

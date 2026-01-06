@@ -9,11 +9,13 @@ import {
   listRecipeChanges,
   getSharePermission,
   getRecipeSuggestions,
+  rollbackRecipe,
   type SharePermission,
   type RecipeSuggestions,
 } from "../lib/recipeService";
 import { listPhotosPage } from "../lib/photoService";
 import { useAuth } from "../auth/UseAuth.ts";
+import VersionComparison from "../ui/VersionComparison";
 import {
   listGroupAdmins,
   listGroupShares,
@@ -57,6 +59,10 @@ export default function RecipeDetailPage() {
   const [suggestionsStatus, setSuggestionsStatus] = useState<"idle" | "loading" | "error">("idle");
   const [suggestionsError, setSuggestionsError] = useState("");
   const [suggestions, setSuggestions] = useState<RecipeSuggestions | null>(null);
+  const [versionCompareOpen, setVersionCompareOpen] = useState(false);
+  const [selectedChange, setSelectedChange] = useState<RecipeChange | null>(null);
+  const [rollbackStatus, setRollbackStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [rollbackError, setRollbackError] = useState("");
 
   async function refresh() {
     if (!id) return;
@@ -555,6 +561,31 @@ export default function RecipeDetailPage() {
       .join(", ");
     const extra = changed.length > 3 ? ` +${changed.length - 3}` : "";
     return `Updated: ${label}${extra}`;
+  }
+
+  function openVersionCompare(change: RecipeChange) {
+    setSelectedChange(change);
+    setVersionCompareOpen(true);
+    setRollbackStatus("idle");
+    setRollbackError("");
+  }
+
+  async function handleRollback(changeId: string) {
+    if (!id || !recipe) return;
+    setRollbackStatus("loading");
+    setRollbackError("");
+    try {
+      await rollbackRecipe(id, changeId);
+      setRollbackStatus("idle");
+      setVersionCompareOpen(false);
+      await refresh();
+      // Reload changes to reflect the rollback
+      const updatedChanges = await listRecipeChanges(id);
+      setChanges(updatedChanges);
+    } catch (err) {
+      setRollbackStatus("error");
+      setRollbackError(err instanceof Error ? err.message : "Failed to rollback recipe");
+    }
   }
   const canEdit = isOwner || sharePermission === "edit";
 
@@ -1073,15 +1104,66 @@ export default function RecipeDetailPage() {
           <ul className="detail-list">
             {changes.map((change) => (
               <li key={change.id}>
-                <div style={{ fontWeight: 600 }}>{summarizeChange(change)}</div>
-                <div className="muted small">
-                  {new Date(change.changed_at).toLocaleString()}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{summarizeChange(change)}</div>
+                    <div className="muted small">
+                      {new Date(change.changed_at).toLocaleString()}
+                    </div>
+                  </div>
+                  {change.action === "update" && canEdit && (
+                    <button
+                      className="btn ghost"
+                      type="button"
+                      onClick={() => openVersionCompare(change)}
+                      style={{ flex: 0 }}
+                    >
+                      Compare
+                    </button>
+                  )}
                 </div>
               </li>
             ))}
           </ul>
         </div>
       )}
+
+      {versionCompareOpen && selectedChange && typeof document !== "undefined"
+        ? createPortal(
+            <div className="modal-overlay" onClick={() => setVersionCompareOpen(false)}>
+              <div className="modal-panel version-compare-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <div>
+                    <div className="h2">Version Comparison</div>
+                    <div className="muted small">Compare this version with the current recipe</div>
+                  </div>
+                  <button className="btn ghost" type="button" onClick={() => setVersionCompareOpen(false)}>
+                    Close
+                  </button>
+                </div>
+
+                {rollbackStatus === "error" && rollbackError && (
+                  <div className="card" style={{ background: "rgba(255, 59, 48, 0.1)", borderColor: "rgba(255, 59, 48, 0.3)" }}>
+                    <div style={{ fontWeight: 600, color: "var(--text)" }}>Rollback failed</div>
+                    <div className="muted small">{rollbackError}</div>
+                  </div>
+                )}
+
+                {rollbackStatus === "loading" && (
+                  <div className="card muted">Rolling back recipe...</div>
+                )}
+
+                <VersionComparison
+                  currentRecipe={recipe}
+                  change={selectedChange}
+                  onRollback={handleRollback}
+                  canRollback={canEdit && rollbackStatus !== "loading"}
+                />
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
 
       {lightboxIndex !== null && photos[lightboxIndex]?.signed_url && (
         <div

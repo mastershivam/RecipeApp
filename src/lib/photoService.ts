@@ -52,7 +52,7 @@ async function resizeImage(file: File, maxSize: number, quality: number): Promis
   canvas.height = nextHeight;
   const ctx = canvas.getContext("2d");
   if (!ctx) return file;
-  ctx.drawImage(bitmap as any, 0, 0, nextWidth, nextHeight);
+  ctx.drawImage(bitmap, 0, 0, nextWidth, nextHeight);
 
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, "image/jpeg", quality)
@@ -174,14 +174,14 @@ export async function addPhoto(
 
     try {
       await uploadWithProgress(storagePath, uploadFile, onProgress);
-    } catch (err: any) {
+    } catch (err: unknown ) {
       console.error("Storage upload failed", {
-        message: err?.message,
+        message: (err as Error).message,
         bucket: BUCKET,
         path: storagePath,
       });
       await supabase.from("recipe_photos").delete().eq("id", photoId);
-      throw new Error(err?.message || "Failed to upload file.");
+      throw new Error(err instanceof Error ? err.message : "Failed to upload file.");
     }
   }
 

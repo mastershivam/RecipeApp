@@ -12,12 +12,12 @@
 - Pantry + inventory with expiration reminders.
 - Nutrition estimates (USDA API) for recipes.
 - Multi-language recipes + translation.
-- Recipe version compare + rollback.
 - Accessibility pass + keyboard nav for all modals.
 - Offline-first editing with sync conflict resolution.
 
 ## Done
 - AI recipe import
+- Recipe version compare + rollback
 - Architectural diagram.
 - Server-side full-text search (Supabase tsvector).
 - Server-side HEIC conversion via Vercel function.

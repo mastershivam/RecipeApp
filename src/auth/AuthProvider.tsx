@@ -1,6 +1,7 @@
-import { createContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
+import {AuthCtx} from "./UseAuth"
 
 type AuthState = {
   user: User | null;
@@ -9,7 +10,6 @@ type AuthState = {
   signOut: () => Promise<void>;
 };
 
-export const AuthCtx = createContext<AuthState | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);

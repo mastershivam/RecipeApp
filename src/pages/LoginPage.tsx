@@ -9,11 +9,12 @@ export default function LoginPage() {
   const [stats, setStats] = useState<{ recipes: number; tags: number; photos: number } | null>(
     null
   );
+  type LocationState = { from?: string };
 
   const nav = useNavigate();
   const loc = useLocation();
   const redirectTo = useMemo(() => {
-    const from = (loc.state as any)?.from;
+    const from = (loc.state as LocationState)?.from;
     return typeof from === "string" ? from : "/";
   }, [loc.state]);
 

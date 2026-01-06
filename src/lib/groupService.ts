@@ -10,20 +10,26 @@ export async function listGroups(): Promise<GroupSummary[]> {
   const user = userData.user;
   if (!user) throw new Error("Not authenticated");
 
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("group_members")
     .select("role,status,groups(*)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  if (error) throw new Error(error.message);
-  return (data ?? [])
-    .map((row: any) => ({
-      ...(row.groups as Group),
-      role: row.role as GroupRole,
-      status: row.status as GroupMemberStatus,
-    }))
-    .filter((row: GroupSummary) => !!row.id);
+    type GroupMemberRow = {
+      role: GroupRole;
+      status: GroupMemberStatus;
+      groups: Group | Group[] | null;
+    };
+    
+    return (data ?? [])
+      .map((row: GroupMemberRow) => {
+        const group = Array.isArray(row.groups) ? row.groups[0] : row.groups;
+        return group
+          ? { ...group, role: row.role, status: row.status }
+          : null;
+      })
+      .filter((row): row is GroupSummary => !!row?.id);
 }
 
 export async function listGroupInvites(): Promise<GroupSummary[]> {
@@ -99,7 +105,7 @@ export async function respondToInvite(groupId: string, accept: boolean) {
     if (res.status !== 404) {
       throw new Error(detail || `Invite update failed (${res.status})`);
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err instanceof Error && !err.message.includes("404")) {
       throw err;
     }

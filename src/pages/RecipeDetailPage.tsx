@@ -372,8 +372,8 @@ export default function RecipeDetailPage() {
       title: recipe.title,
       description: recipe.description ?? null,
       tags: recipe.tags ?? [],
-      ingredients: (recipe.ingredients ?? []).map((i: any) => ({ text: i.text ?? "" })),
-      steps: (recipe.steps ?? []).map((s: any) => ({ text: s.text ?? "" })),
+      ingredients: (recipe.ingredients ?? []).map((i: unknown) => ({ text: (i as { text?: string }).text ?? "" })),
+      steps: (recipe.steps ?? []).map((s: unknown) => ({ text: s as {text?:string} ?? "" })),
       prepMinutes: recipe.prep_minutes ?? null,
       cookMinutes: recipe.cook_minutes ?? null,
       servings: recipe.servings ?? null,
@@ -407,8 +407,8 @@ export default function RecipeDetailPage() {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 
-    const ingredients = (recipe.ingredients ?? []).map((i: any) => i.text || "").filter(Boolean);
-    const steps = (recipe.steps ?? []).map((s: any) => s.text || "").filter(Boolean);
+    const ingredients = (recipe.ingredients ?? []).map((i: unknown) => (i as { text?: string }).text || "").filter(Boolean);
+    const steps = (recipe.steps ?? []).map((s: unknown) => (s as { text?: string }).text || "").filter(Boolean);
     const tags = (recipe.tags ?? []).filter(Boolean).join(" · ");
     const meta = [
       recipe.prep_minutes ? `Prep ${recipe.prep_minutes}m` : null,
@@ -508,13 +508,13 @@ export default function RecipeDetailPage() {
     if (recipe.source_url) lines.push(`\nSource: ${recipe.source_url}`);
 
     lines.push(`\n## Ingredients`);
-    (recipe.ingredients ?? []).forEach((i: any) => {
-      if (i?.text) lines.push(`- ${i.text}`);
+    (recipe.ingredients ?? []).forEach((i: unknown) => {
+      if ((i as { text?: string }).text) lines.push(`- ${(i as { text?: string }).text}`);
     });
 
     lines.push(`\n## Steps`);
-    (recipe.steps ?? []).forEach((s: any, idx: number) => {
-      if (s?.text) lines.push(`${idx + 1}. ${s.text}`);
+    (recipe.steps ?? []).forEach((s: unknown, idx: number) => {
+      if ((s as { text?: string }).text) lines.push(`${idx + 1}. ${(s as { text?: string }) .text}`);
     });
 
     const blob = new Blob([lines.join("\n")], { type: "text/markdown" });

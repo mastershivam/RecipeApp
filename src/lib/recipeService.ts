@@ -78,7 +78,7 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
     .eq("status", "accepted");
 
   if (memberErr) throw new Error(memberErr.message);
-  const groupIds = (memberRows ?? []).map((row: any) => row.group_id);
+  const groupIds = (memberRows ?? []).map((row: { group_id: string } | null) => row?.group_id ?? "");
 
   let groupData: { recipe: Recipe; permission: SharePermission }[] = [];
   if (groupIds.length > 0) {
@@ -89,7 +89,7 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
       .order("created_at", { ascending: false });
 
     if (groupErr) throw new Error(groupErr.message);
-    const recipeIds = Array.from(new Set((shares ?? []).map((row: any) => row.recipe_id)));
+    const recipeIds = Array.from(new Set((shares ?? []).map((row: unknown) => (row as { recipe_id: string }).recipe_id)));
     if (recipeIds.length > 0) {
       const { data: recipes, error: recipeErr } = await supabase
         .from("recipes")
@@ -99,21 +99,41 @@ export async function listSharedRecipes(): Promise<SharedRecipe[]> {
       if (recipeErr) throw new Error(recipeErr.message);
       const recipeMap = new Map((recipes ?? []).map((r: Recipe) => [r.id, r]));
       groupData = (shares ?? [])
-        .map((row: any) => ({
+        .map((row) => ({
           recipe: recipeMap.get(row.recipe_id),
           permission: row.permission as SharePermission,
         }))
         .filter((row) => !!row.recipe) as { recipe: Recipe; permission: SharePermission }[];
     }
   }
+  
 
+  
   const merged = new Map<string, SharedRecipe>();
-  (data ?? []).forEach((row: any) => {
+
+  type Row = NonNullable<typeof data>[number];
+  
+  (data ?? []).forEach((row: Row) => {
     if (row.owner_id === user.id) return;
-    if (!row.recipes) return;
-    merged.set(row.recipes.id, {
-      recipe: row.recipes as Recipe,
-      permission: row.permission as SharePermission,
+  
+    const recipes = row.recipes;
+    if (!recipes) return;
+  
+    // If `recipes` is an array (common for relations), handle that:
+    if (Array.isArray(recipes)) {
+      for (const recipe of recipes) {
+        merged.set(recipe.id, {
+          recipe,
+          permission: row.permission,
+        });
+      }
+      return;
+    }
+  
+    // If `recipes` is a single object:
+    merged.set((recipes as Recipe).id, {
+      recipe: recipes as Recipe,
+      permission: row.permission,
     });
   });
 
@@ -154,7 +174,9 @@ export async function getSharePermission(recipeId: string): Promise<SharePermiss
     .eq("status", "accepted");
 
   if (memberErr) throw new Error(memberErr.message);
-  const groupIds = (memberRows ?? []).map((row: any) => row.group_id);
+  type MemberRow = NonNullable<typeof memberRows>[number];
+
+  const groupIds = (memberRows ?? []).map((row: MemberRow) => row.group_id);
   if (groupIds.length === 0) return null;
 
   const { data: groupShare, error: groupErr } = await supabase
@@ -165,7 +187,7 @@ export async function getSharePermission(recipeId: string): Promise<SharePermiss
     .order("created_at", { ascending: false });
 
   if (groupErr) throw new Error(groupErr.message);
-  return (groupShare ?? []).reduce<SharePermission | null>((acc, row: any) => {
+  return (groupShare ?? []).reduce<SharePermission | null>((acc, row) => {
     const permission = row.permission as SharePermission;
     if (!acc) return permission;
     return permissionScore(permission) > permissionScore(acc) ? permission : acc;
@@ -236,7 +258,7 @@ export async function listTagSuggestions(): Promise<string[]> {
   const { data, error } = await supabase.from("recipes").select("tags");
   if (error) throw new Error(error.message);
   const tags = new Set<string>();
-  (data ?? []).forEach((row: any) => {
+  (data ?? []).forEach((row) => {
     (row.tags ?? []).forEach((t: string) => tags.add(t));
   });
   return Array.from(tags).sort();

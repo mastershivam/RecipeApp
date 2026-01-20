@@ -553,7 +553,9 @@ export default function RecipeDetailPage() {
       "is_favorite",
       "last_cooked_at",
     ];
-    const changed = fields.filter((f) => JSON.stringify(before?.[f]) !== JSON.stringify(after?.[f]));
+    const changed = fields.filter(
+      (f) => JSON.stringify((before as Record<string, unknown>)?.[f]) !== JSON.stringify((after as Record<string, unknown>)?.[f])
+    );
     if (changed.length === 0) return "Updated";
     const label = changed
       .slice(0, 3)

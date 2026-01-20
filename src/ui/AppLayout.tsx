@@ -65,10 +65,6 @@ export default function AppLayout() {
   }, []);
 
   useEffect(() => {
-    if (!isDetail) setCanShare(false);
-  }, [isDetail]);
-
-  useEffect(() => {
     if (!inboxOpen) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") setInboxOpen(false);
@@ -88,7 +84,7 @@ export default function AppLayout() {
   }, [inboxOpen]);
 
   useEffect(() => {
-    setInboxOpen(false);
+    queueMicrotask(() => setInboxOpen(false));
   }, [loc.pathname]);
 
   return (

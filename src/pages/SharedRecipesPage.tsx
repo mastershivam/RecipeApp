@@ -73,7 +73,7 @@ export default function SharedRecipesPage() {
       ) : (
         <div className="grid">
           {shared.map((s) => (
-            <RecipeCard key={s.recipe.id} recipe={s.recipe as any} coverUrl={coverUrls[s.recipe.id]} />
+            <RecipeCard key={s.recipe.id} recipe={s.recipe} coverUrl={coverUrls[s.recipe.id]} />
           ))}
         </div>
       )}

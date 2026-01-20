@@ -1111,6 +1111,32 @@ html[data-theme="dark"] .textarea::placeholder {
   flex: 1 1 0;
 }
 
+.photo-uploader {
+  position: relative;
+}
+
+.photo-uploader.is-dragging {
+  border: 2px dashed var(--accent);
+  background: rgba(0, 122, 255, 0.06);
+}
+
+html[data-theme="dark"] .photo-uploader.is-dragging {
+  background: rgba(10, 132, 255, 0.1);
+}
+
+.photo-uploader-drop-hint {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: var(--accent);
+  border-radius: 16px;
+}
+
 .upload-status {
   display: grid;
   gap: 8px;

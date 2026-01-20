@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getRecipe, updateRecipe } from "../lib/recipeService";
 import type { Recipe } from "../lib/types";
@@ -27,12 +27,16 @@ export default function CookModePage() {
     };
   }, [id]);
 
+  const lastCookedUpdatedFor = useRef<string | null>(null);
   useEffect(() => {
     if (!recipe || !user || recipe.user_id !== user.id) return;
+    if (lastCookedUpdatedFor.current === recipe.id) return;
+    lastCookedUpdatedFor.current = recipe.id;
     const now = new Date().toISOString();
-    updateRecipe(recipe.id, { last_cooked_at: now }).catch(() => {});
-    setRecipe((prev) => (prev ? { ...prev, last_cooked_at: now } : prev));
-  }, [recipe?.id, recipe?.user_id, user]);
+    updateRecipe(recipe.id, { last_cooked_at: now })
+      .then(() => setRecipe((prev) => (prev ? { ...prev, last_cooked_at: now } : prev)))
+      .catch(() => {});
+  }, [recipe, user]);
 
   useEffect(() => {
     if (!("wakeLock" in navigator) || !navigator.wakeLock) return;

@@ -143,10 +143,18 @@ export default function RecipeNewPage() {
         description: source?.description ?? undefined,
         tags: Array.isArray(source?.tags) ? source.tags : [],
         ingredients: Array.isArray(source?.ingredients)
-          ? source.ingredients.map((i: any) => ({ text: String(i?.text || i || "").trim() }))
+          ? source.ingredients.map((i: unknown) => ({
+              text: String(
+                (i && typeof i === "object" && "text" in i ? (i as { text?: string }).text : i) || ""
+              ).trim(),
+            }))
           : [],
         steps: Array.isArray(source?.steps)
-          ? source.steps.map((s: any) => ({ text: String(s?.text || s || "").trim() }))
+          ? source.steps.map((s: unknown) => ({
+              text: String(
+                (s && typeof s === "object" && "text" in s ? (s as { text?: string }).text : s) || ""
+              ).trim(),
+            }))
           : [],
         prep_minutes: source?.prepMinutes ?? undefined,
         cook_minutes: source?.cookMinutes ?? undefined,
@@ -312,8 +320,8 @@ export default function RecipeNewPage() {
                   );
                 }
                 setPending([]);
-              } catch (err: any) {
-                const msg = err?.message || "Photo upload failed. Please try again.";
+              } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : "Photo upload failed. Please try again.";
                 setPending((prev) =>
                   prev.map((item) =>
                     item.status === "uploading"

@@ -33,7 +33,7 @@ export type RecipeChange = {
   recipe_id: string;
   user_id?: string | null;
   action: "insert" | "update" | "delete";
-  changes?: any;
+  changes?: { after?: Partial<Recipe>; before?: Partial<Recipe> };
   changed_at: string;
 };
 

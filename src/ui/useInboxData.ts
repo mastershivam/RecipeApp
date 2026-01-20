@@ -32,8 +32,10 @@ export function useInboxData(enabled = true) {
           (row) => !dismissedShareIds.includes(row.recipe.id)
         );
         setShares(filteredShares);
-      } catch (err: any) {
-        const message = err?.message || String(err) || "Failed to load inbox.";
+      } catch (err: unknown) {
+        const message =
+          (err instanceof Error ? err.message : typeof err === "string" ? err : String(err)) ||
+          "Failed to load inbox.";
         if (!cancelled) setError(message);
       } finally {
         if (!cancelled) setLoading(false);
@@ -43,7 +45,7 @@ export function useInboxData(enabled = true) {
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [enabled, dismissedShareIds]);
 
   async function handleInvite(groupId: string, accept: boolean) {
     setBusyGroupId(groupId);
@@ -51,8 +53,10 @@ export function useInboxData(enabled = true) {
     try {
       await respondToInvite(groupId, accept);
       setInvites((prev) => prev.filter((g) => g.id !== groupId));
-    } catch (err: any) {
-      const message = err?.message || String(err) || "Failed to update invite.";
+    } catch (err: unknown) {
+      const message =
+        (err instanceof Error ? err.message : typeof err === "string" ? err : String(err)) ||
+        "Failed to update invite.";
       setError(message);
     } finally {
       setBusyGroupId(null);

@@ -197,8 +197,8 @@ export default function RecipeEditPage() {
                   setUploadQueue((prev) => prev.filter((q) => q.id !== item.id));
                 }
                 await refresh();
-              } catch (err: any) {
-                const msg = err?.message || "Photo upload failed. Please try again.";
+              } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : "Photo upload failed. Please try again.";
                 setUploadError(msg);
                 setUploadQueue((prev) =>
                   prev.map((q) =>
@@ -273,13 +273,12 @@ export default function RecipeEditPage() {
             submitLabel="Edit recipe"
             suggestedTags={suggestedTags}
             initial={{
-            // Adapt Supabase recipe -> RecipeForm's shape
-            id: recipe.id as any,
+            id: recipe.id,
             title: recipe.title,
             description: recipe.description ?? undefined,
             tags: recipe.tags,
-            ingredients: recipe.ingredients as any,
-            steps: recipe.steps as any,
+            ingredients: recipe.ingredients,
+            steps: recipe.steps,
             prepMinutes: recipe.prep_minutes ?? undefined,
             cookMinutes: recipe.cook_minutes ?? undefined,
             servings: recipe.servings ?? undefined,
@@ -287,14 +286,14 @@ export default function RecipeEditPage() {
             coverPhotoId: recipe.cover_photo_id ?? undefined,
             createdAt: 0,
             updatedAt: 0,
-          } as any}
+          }}
           onSubmit={async (draft) => {
             await updateRecipe(id, {
               title: draft.title,
               description: draft.description ?? null,
               tags: draft.tags,
-              ingredients: draft.ingredients as any,
-              steps: draft.steps as any,
+              ingredients: draft.ingredients,
+              steps: draft.steps,
               prep_minutes: draft.prepMinutes ?? null,
               cook_minutes: draft.cookMinutes ?? null,
               servings: draft.servings ?? null,

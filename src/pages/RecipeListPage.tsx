@@ -92,9 +92,10 @@ export default function RecipeListPage() {
   }, [recipes]);
 
   useEffect(() => {
-    const t = (loc.state as any)?.toast;
+    const t = (loc.state as { toast?: { type?: string; message?: string } } | null)?.toast;
     if (t?.message) {
-      setToast(t);
+      const type = t.type === "error" ? "error" : "success";
+      setToast({ type, message: t.message });
       nav(loc.pathname, { replace: true, state: {} });
       const timer = setTimeout(() => setToast(null), 3000);
       return () => clearTimeout(timer);
@@ -143,7 +144,8 @@ export default function RecipeListPage() {
   function toggleTag(t: string) {
     setActiveTags((prev) => {
       const n = new Set(prev);
-      n.has(t) ? n.delete(t) : n.add(t);
+      if (n.has(t)) n.delete(t);
+      else n.add(t);
       return n;
     });
   }
@@ -213,7 +215,7 @@ export default function RecipeListPage() {
           <div className="h2">Favorites</div>
           <div className="grid">
             {favorites.map((r) => (
-              <RecipeCard key={r.id} recipe={r as any} coverUrl={coverUrls[r.id]} />
+              <RecipeCard key={r.id} recipe={r} coverUrl={coverUrls[r.id]} />
             ))}
           </div>
         </div>
@@ -224,7 +226,7 @@ export default function RecipeListPage() {
           <div className="h2">Recently cooked</div>
           <div className="grid">
             {recentlyCooked.map((r) => (
-              <RecipeCard key={r.id} recipe={r as any} coverUrl={coverUrls[r.id]} />
+              <RecipeCard key={r.id} recipe={r} coverUrl={coverUrls[r.id]} />
             ))}
           </div>
         </div>
@@ -237,7 +239,7 @@ export default function RecipeListPage() {
           {showHighlights && <div className="h2">All recipes</div>}
           <div className="grid">
             {recipes.map((r) => (
-              <RecipeCard key={r.id} recipe={r as any} coverUrl={coverUrls[r.id]} />
+              <RecipeCard key={r.id} recipe={r} coverUrl={coverUrls[r.id]} />
             ))}
           </div>
           {hasMore && (

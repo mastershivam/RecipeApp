@@ -2,6 +2,8 @@
 
 ## Now
 - Add share notifications (email).
+- Default Metric / Imperial measurement
+
 
 ## Next
 - Recipe import improvements (retries + source parsing fallbacks).
@@ -17,6 +19,7 @@
 
 ## Done
 - AI recipe import
+- Click and drag photo import
 - Recipe version compare + rollback
 - Architectural diagram.
 - Server-side full-text search (Supabase tsvector).

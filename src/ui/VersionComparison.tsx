@@ -11,8 +11,8 @@ type VersionComparisonProps = {
 type FieldDiff = {
   field: string;
   label: string;
-  before: any;
-  after: any;
+  before: unknown;
+  after: unknown;
   changed: boolean;
 };
 
@@ -103,11 +103,18 @@ export default function VersionComparison({
     return fields.filter((f) => f.changed);
   }, [change, currentRecipe]);
 
-  const formatValue = (value: any, field: string): string => {
+  const formatValue = (value: unknown, field: string): string => {
     if (value === null || value === undefined) return "";
     if (field === "ingredients" || field === "steps") {
       if (Array.isArray(value)) {
-        return value.map((item: any) => item?.text || "").filter(Boolean).join("\n");
+        return value
+          .map((item: unknown) =>
+            item && typeof item === "object" && "text" in item
+              ? String((item as { text?: string }).text ?? "")
+              : String(item ?? "")
+          )
+          .filter(Boolean)
+          .join("\n");
       }
       return "";
     }
@@ -213,9 +220,11 @@ export default function VersionComparison({
                   {diff.field === "ingredients" || diff.field === "steps" ? (
                     <div className="version-list">
                       {Array.isArray(diff.before) && diff.before.length > 0 ? (
-                        diff.before.map((item: any, idx: number) => (
+                        diff.before.map((item: unknown, idx: number) => (
                           <div key={idx} className="version-list-item">
-                            {item?.text || ""}
+                            {item && typeof item === "object" && "text" in item
+                              ? String((item as { text?: string }).text ?? "")
+                              : String(item ?? "")}
                           </div>
                         ))
                       ) : (
@@ -235,9 +244,11 @@ export default function VersionComparison({
                   {diff.field === "ingredients" || diff.field === "steps" ? (
                     <div className="version-list">
                       {Array.isArray(diff.after) && diff.after.length > 0 ? (
-                        diff.after.map((item: any, idx: number) => (
+                        diff.after.map((item: unknown, idx: number) => (
                           <div key={idx} className="version-list-item">
-                            {item?.text || ""}
+                            {item && typeof item === "object" && "text" in item
+                              ? String((item as { text?: string }).text ?? "")
+                              : String(item ?? "")}
                           </div>
                         ))
                       ) : (

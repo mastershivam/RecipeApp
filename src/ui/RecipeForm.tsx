@@ -113,8 +113,8 @@ export default function RecipeForm({
         servings: servings === "" ? undefined : Number(servings),
         sourceUrl: sourceUrl.trim() || undefined,
       });
-    } catch (err: any) {
-      setError(err?.message || "Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setSaving(false);
     }

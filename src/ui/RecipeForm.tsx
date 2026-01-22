@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { type RecipeLine } from "../lib/types";
+import { generateRecipeDescription } from "../lib/recipeService";
 
 type RecipeFormData = {
   id: string;
@@ -65,6 +66,7 @@ export default function RecipeForm({
   const [sourceUrl, setSourceUrl] = useState(initial?.sourceUrl ?? "");
   const [error, setError] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [generatingDescription, setGeneratingDescription] = useState(false);
 
   const tags = useMemo(() => normaliseTags(tagsText), [tagsText]);
   const tagSuggestions = useMemo(
@@ -75,6 +77,42 @@ export default function RecipeForm({
   function addTagSuggestion(tag: string) {
     const next = Array.from(new Set([...tags, tag]));
     setTagsText(next.join(", "));
+  }
+
+  async function handleGenerateDescription() {
+    if (generatingDescription) return;
+    setError("");
+
+    const cleanTitle = title.trim();
+    if (!cleanTitle) {
+      setError("Add a title before generating a description.");
+      return;
+    }
+
+    const ingredients = linesFromText(ingredientsText);
+    const steps = linesFromText(stepsText);
+    if (ingredients.length === 0 || steps.length === 0) {
+      setError("Add ingredients and steps before generating a description.");
+      return;
+    }
+
+    try {
+      setGeneratingDescription(true);
+      const generated = await generateRecipeDescription({
+        title: cleanTitle,
+        tags,
+        ingredients,
+        steps,
+        prepMinutes: prepMinutes === "" ? undefined : Number(prepMinutes),
+        cookMinutes: cookMinutes === "" ? undefined : Number(cookMinutes),
+        servings: servings === "" ? undefined : Number(servings),
+      });
+      setDescription(generated);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Description generation failed.");
+    } finally {
+      setGeneratingDescription(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -133,7 +171,24 @@ export default function RecipeForm({
           </div>
 
           <div>
-            <div className="muted small">Description (optional)</div>
+            <div className="row ai-row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+              <div className="muted small">Description (optional)</div>
+              <button
+                className="btn ai-generate"
+                type="button"
+                onClick={handleGenerateDescription}
+                disabled={generatingDescription}
+              >
+                <span className="btn-icon" aria-hidden="true">
+                  ✨
+                </span>
+                {generatingDescription
+                  ? "Generating…"
+                  : description.trim()
+                    ? "Regenerate with AI"
+                    : "Generate with AI"}
+              </button>
+            </div>
             <textarea
               className="textarea"
               value={description}

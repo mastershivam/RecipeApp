@@ -245,6 +245,33 @@ export async function listPhotosPage(
   return { data: signed, hasMore: pageSize > 0 ? photos.length === pageSize : false };
 }
 
+export async function getDefaultCoverUrls(recipeIds: string[]): Promise<Record<string, string | undefined>> {
+  if (recipeIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from("recipe_photos")
+    .select("id, recipe_id, storage_path")
+    .in("recipe_id", recipeIds)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+
+  const firstByRecipe = new Map<string, { storage_path: string }>();
+  (data ?? []).forEach((row: { recipe_id?: string; storage_path?: string | null } | null) => {
+    const recipeId = row?.recipe_id;
+    const storagePath = row?.storage_path;
+    if (!recipeId || !storagePath) return;
+    if (firstByRecipe.has(recipeId)) return;
+    firstByRecipe.set(recipeId, { storage_path: storagePath });
+  });
+
+  const result: Record<string, string | undefined> = {};
+  for (const [recipeId, row] of firstByRecipe) {
+    const signed = await getSignedUrlCached(row.storage_path);
+    if (signed) result[recipeId] = signed;
+  }
+
+  return result;
+}
+
 export async function deletePhoto(photo: RecipePhoto) {
   // Delete object (if exists)
   if (photo.storage_path) {

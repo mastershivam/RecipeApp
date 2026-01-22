@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { listSharedRecipes, type SharedRecipe } from "../lib/recipeService";
-import { getCoverUrlByPhotoId } from "../lib/photoService";
+import { getCoverUrlByPhotoId, getDefaultCoverUrls } from "../lib/photoService";
 import RecipeCard from "../ui/RecipeCard";
 
 type CoverMap = Record<string, string | undefined>;
@@ -30,13 +30,18 @@ export default function SharedRecipesPage() {
     let cancelled = false;
 
     async function buildCovers() {
-      const missing = shared.filter((s) => s.recipe.cover_photo_id && !coverUrls[s.recipe.id]);
-      if (missing.length === 0) return;
-
       const next: CoverMap = {};
+
+      const missing = shared.filter((s) => s.recipe.cover_photo_id && !coverUrls[s.recipe.id]);
       for (const s of missing) {
         const url = await getCoverUrlByPhotoId(s.recipe.cover_photo_id!);
         if (url) next[s.recipe.id] = url;
+      }
+
+      const missingDefault = shared.filter((s) => !s.recipe.cover_photo_id && !coverUrls[s.recipe.id]);
+      if (missingDefault.length > 0) {
+        const defaults = await getDefaultCoverUrls(missingDefault.map((s) => s.recipe.id));
+        Object.assign(next, defaults);
       }
       if (!cancelled && Object.keys(next).length > 0) {
         setCoverUrls((prev) => ({ ...prev, ...next }));

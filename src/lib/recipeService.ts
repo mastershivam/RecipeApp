@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient";
-import type { Recipe, RecipeChange } from "./types";
+import type { Recipe, RecipeChange, RecipeLine } from "./types";
 
 export type SharePermission = "view" | "edit";
 export type SharedRecipe = { recipe: Recipe; permission: SharePermission };
@@ -273,6 +273,36 @@ export async function getRecipeSuggestions(recipeId: string): Promise<RecipeSugg
   });
   if (!res.ok) throw new Error(await res.text());
   return (await res.json()) as RecipeSuggestions;
+}
+
+export async function generateRecipeDescription(input: {
+  title: string;
+  tags?: string[];
+  ingredients?: RecipeLine[];
+  steps?: RecipeLine[];
+  prepMinutes?: number;
+  cookMinutes?: number;
+  servings?: number;
+}): Promise<string> {
+  const token = await getAccessToken();
+  const res = await fetch("/api/recipe-description", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      title: input.title,
+      tags: input.tags ?? [],
+      ingredients: (input.ingredients ?? []).map((line) => line.text),
+      steps: (input.steps ?? []).map((line) => line.text),
+      prepMinutes: input.prepMinutes ?? null,
+      cookMinutes: input.cookMinutes ?? null,
+      servings: input.servings ?? null,
+    }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const data = (await res.json()) as { description?: string };
+  const description = typeof data.description === "string" ? data.description.trim() : "";
+  if (!description) throw new Error("AI description was empty.");
+  return description;
 }
 
 export async function listRecipeChanges(recipeId: string): Promise<RecipeChange[]> {

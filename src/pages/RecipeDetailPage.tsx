@@ -806,7 +806,7 @@ export default function RecipeDetailPage() {
             <button className="btn" type="button" onClick={() => setExportOpen((v) => !v)}>
               Export
             </button>
-            <button className="btn" type="button" onClick={openSuggestions}>
+            <button className="btn ai-generate" type="button" onClick={openSuggestions}>
               AI Suggestions
             </button>
             {canEdit && (

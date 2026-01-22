@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Recipe } from "../lib/types";
 import { listRecipes } from "../lib/recipeService";
-import { getCoverUrlByPhotoId } from "../lib/photoService";
+import { getCoverUrlByPhotoId, getDefaultCoverUrls } from "../lib/photoService";
 import TagFilter from "../ui/TagFilter";
 import RecipeCard from "../ui/RecipeCard";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -122,13 +122,18 @@ export default function RecipeListPage() {
     let cancelled = false;
 
     async function buildCovers() {
-      const missing = recipes.filter((r) => r.cover_photo_id && !coverUrls[r.id]);
-      if (missing.length === 0) return;
-
       const next: CoverMap = {};
+
+      const missing = recipes.filter((r) => r.cover_photo_id && !coverUrls[r.id]);
       for (const r of missing) {
         const url = await getCoverUrlByPhotoId(r.cover_photo_id!);
         if (url) next[r.id] = url;
+      }
+
+      const missingDefault = recipes.filter((r) => !r.cover_photo_id && !coverUrls[r.id]);
+      if (missingDefault.length > 0) {
+        const defaults = await getDefaultCoverUrls(missingDefault.map((r) => r.id));
+        Object.assign(next, defaults);
       }
       if (!cancelled && Object.keys(next).length > 0) {
         setCoverUrls((prev) => ({ ...prev, ...next }));

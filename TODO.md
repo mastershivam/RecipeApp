@@ -2,13 +2,12 @@
 
 ## Now
 - Add share notifications (email).
-
-- manage account
 - cook mode, add ingredient list to the right side of the page
 
 
 ## Next
 - Recipe import improvements (retries + source parsing fallbacks).
+- manage account
 - macros- AI
 - New recipe suggestion based on ingredients (ai)
 - Bulk tag editor + tag merge tool.

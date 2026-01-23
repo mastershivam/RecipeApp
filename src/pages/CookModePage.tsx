@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { getRecipe, updateRecipe } from "../lib/recipeService";
 import type { Recipe } from "../lib/types";
 import { useAuth } from "../auth/UseAuth";
+import { scaleIngredient, type UnitMode } from "../lib/ingredientScaling";
 
 export default function CookModePage() {
   const { id } = useParams();
@@ -12,6 +13,11 @@ export default function CookModePage() {
   const [stepIndex, setStepIndex] = useState(0);
   const [wakeActive, setWakeActive] = useState(false);
   const [wakeError, setWakeError] = useState<string | null>(null);
+  const [unitMode, setUnitMode] = useState<UnitMode>(() => {
+    const stored = localStorage.getItem("unitPreference");
+    if (stored === "imperial" || stored === "metric") return stored;
+    return "auto";
+  });
 
   useEffect(() => {
     if (!id) return;
@@ -26,6 +32,26 @@ export default function CookModePage() {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    function onStorage(event: StorageEvent) {
+      if (event.key === "unitPreference") {
+        if (event.newValue === "imperial" || event.newValue === "metric") {
+          setUnitMode(event.newValue);
+        }
+      }
+    }
+    function onUnitPreference(event: Event) {
+      const unit = (event as CustomEvent<{ unit?: "metric" | "imperial" }>).detail?.unit;
+      if (unit === "metric" || unit === "imperial") setUnitMode(unit);
+    }
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("unit-preference-change", onUnitPreference);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("unit-preference-change", onUnitPreference);
+    };
+  }, []);
 
   const lastCookedUpdatedFor = useRef<string | null>(null);
   useEffect(() => {
@@ -73,6 +99,10 @@ export default function CookModePage() {
 
   const stepCount = recipe?.steps?.length ?? 0;
   const step = useMemo(() => recipe?.steps?.[stepIndex]?.text ?? "", [recipe, stepIndex]);
+  const ingredients = useMemo(() => {
+    const items = (recipe?.ingredients ?? []).map((i) => i.text).filter(Boolean);
+    return items.map((item) => scaleIngredient(item, 1, unitMode));
+  }, [recipe, unitMode]);
 
   if (!id) return <div className="card">Missing id</div>;
   if (!recipe) return <div className="card">Loading…</div>;
@@ -111,23 +141,39 @@ export default function CookModePage() {
         </div>
       </div>
 
-      <div className="card cook-step">
-        <div className="cook-step-text">{step}</div>
-        <div className="row cook-controls">
-          <button
-            className="btn"
-            onClick={() => setStepIndex((i) => Math.max(0, i - 1))}
-            disabled={stepIndex === 0}
-          >
-            Previous
-          </button>
-          <button
-            className="btn primary"
-            onClick={() => setStepIndex((i) => Math.min(stepCount - 1, i + 1))}
-            disabled={stepIndex === stepCount - 1}
-          >
-            Next
-          </button>
+      <div className="cook-grid">
+        <div className="card cook-step">
+          <div className="cook-step-text">{step}</div>
+          <div className="row cook-controls">
+            <button
+              className="btn"
+              onClick={() => setStepIndex((i) => Math.max(0, i - 1))}
+              disabled={stepIndex === 0}
+            >
+              Previous
+            </button>
+            <button
+              className="btn primary"
+              onClick={() => setStepIndex((i) => Math.min(stepCount - 1, i + 1))}
+              disabled={stepIndex === stepCount - 1}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+
+        <div className="card cook-ingredients">
+          <div className="h2">Ingredients</div>
+          <div className="hr" />
+          {ingredients.length === 0 ? (
+            <div className="muted small">No ingredients listed.</div>
+          ) : (
+            <ul className="detail-list">
+              {ingredients.map((item, idx) => (
+                <li key={`${item}-${idx}`}>{item}</li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 

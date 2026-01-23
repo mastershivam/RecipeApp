@@ -1380,6 +1380,17 @@ html[data-theme="dark"] .photo-uploader.is-dragging {
   max-width: 920px;
 }
 
+.cook-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 16px;
+}
+
+.cook-ingredients {
+  max-height: 520px;
+  overflow: auto;
+}
+
 .cook-hero {
   display: flex;
   align-items: center;
@@ -1413,6 +1424,14 @@ html[data-theme="dark"] .photo-uploader.is-dragging {
 }
 
 @media (max-width: 760px) {
+  .cook-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cook-ingredients {
+    max-height: none;
+  }
+
   .topbar {
     flex-direction: column;
     align-items: flex-start;

@@ -15,6 +15,13 @@ export type Recipe = {
   cover_photo_id?: string | null;
   is_favorite?: boolean | null;
   last_cooked_at?: string | null;
+  nutrition_cache?: {
+    calories: number;
+    carbs: number;
+    protein: number;
+    fat: number;
+  } | null;
+  nutrition_updated_at?: string | null;
   created_at: string;
   updated_at: string;
 };

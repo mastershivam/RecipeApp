@@ -333,6 +333,26 @@ export async function generateRecipeTags(input: {
   return Array.isArray(data.tags) ? data.tags : [];
 }
 
+export type RecipeNutrition = {
+  perServing: {
+    calories: number;
+    carbs: number;
+    protein: number;
+    fat: number;
+  };
+};
+
+export async function generateRecipeNutrition(recipeId: string): Promise<RecipeNutrition> {
+  const token = await getAccessToken();
+  const res = await fetch("/api/recipe-nutrition", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ recipeId }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return (await res.json()) as RecipeNutrition;
+}
+
 export async function listRecipeChanges(recipeId: string): Promise<RecipeChange[]> {
   const { data, error } = await supabase
     .from("recipe_changes")

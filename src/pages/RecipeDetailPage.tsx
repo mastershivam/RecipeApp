@@ -12,6 +12,8 @@ import {
   rollbackRecipe,
   type SharePermission,
   type RecipeSuggestions,
+  type RecipeNutrition,
+  generateRecipeNutrition,
 } from "../lib/recipeService";
 import { listPhotosPage } from "../lib/photoService";
 import { useAuth } from "../auth/UseAuth.ts";
@@ -52,7 +54,11 @@ export default function RecipeDetailPage() {
   const [groupShareAccess, setGroupShareAccess] = useState<SharePermission>("view");
   const [shareOpen, setShareOpen] = useState(false);
   const [scale, setScale] = useState(1);
-  const [unitMode, setUnitMode] = useState<"auto" | "imperial" | "metric">("auto");
+  const [unitMode, setUnitMode] = useState<"auto" | "imperial" | "metric">(() => {
+    const stored = localStorage.getItem("unitPreference");
+    if (stored === "imperial" || stored === "metric") return stored;
+    return "auto";
+  });
   const [changes, setChanges] = useState<RecipeChange[]>([]);
   const [exportOpen, setExportOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
@@ -63,6 +69,12 @@ export default function RecipeDetailPage() {
   const [selectedChange, setSelectedChange] = useState<RecipeChange | null>(null);
   const [rollbackStatus, setRollbackStatus] = useState<"idle" | "loading" | "error">("idle");
   const [rollbackError, setRollbackError] = useState("");
+  const [nutritionStatus, setNutritionStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [nutritionError, setNutritionError] = useState("");
+  const [nutrition, setNutrition] = useState<RecipeNutrition | null>(null);
+  const [showMacrosPreference, setShowMacrosPreference] = useState(() => {
+    return localStorage.getItem("showMacrosPerServing") === "true";
+  });
 
   async function refresh() {
     if (!id) return;
@@ -78,6 +90,49 @@ export default function RecipeDetailPage() {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    setNutrition(null);
+    setNutritionStatus("idle");
+    setNutritionError("");
+  }, [id]);
+
+  useEffect(() => {
+    if (!showMacrosPreference || !recipe) return;
+    if (!recipe.servings) return;
+    if (nutrition || nutritionStatus !== "idle") return;
+    handleGenerateNutrition();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showMacrosPreference, recipe?.id]);
+
+  useEffect(() => {
+    function onStorage(event: StorageEvent) {
+      if (event.key === "showMacrosPerServing") {
+        setShowMacrosPreference(event.newValue === "true");
+      }
+      if (event.key === "unitPreference") {
+        if (event.newValue === "imperial" || event.newValue === "metric") {
+          setUnitMode(event.newValue);
+        }
+      }
+    }
+    function onMacrosPreference(event: Event) {
+      const enabled = (event as CustomEvent<{ enabled?: boolean }>).detail?.enabled;
+      if (typeof enabled === "boolean") setShowMacrosPreference(enabled);
+    }
+    function onUnitPreference(event: Event) {
+      const unit = (event as CustomEvent<{ unit?: "metric" | "imperial" }>).detail?.unit;
+      if (unit === "metric" || unit === "imperial") setUnitMode(unit);
+    }
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("macros-preference-change", onMacrosPreference);
+    window.addEventListener("unit-preference-change", onUnitPreference);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("macros-preference-change", onMacrosPreference);
+      window.removeEventListener("unit-preference-change", onUnitPreference);
+    };
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -372,12 +427,14 @@ export default function RecipeDetailPage() {
       title: recipe.title,
       description: recipe.description ?? null,
       tags: recipe.tags ?? [],
-      ingredients: (recipe.ingredients ?? []).map((i: unknown) => ({ text: (i as { text?: string }).text ?? "" })),
+      ingredients: scaledIngredients.map((text) => ({ text })),
       steps: (recipe.steps ?? []).map((s: unknown) => ({ text: s as {text?:string} ?? "" })),
       prepMinutes: recipe.prep_minutes ?? null,
       cookMinutes: recipe.cook_minutes ?? null,
       servings: recipe.servings ?? null,
       sourceUrl: recipe.source_url ?? null,
+      scale,
+      unitMode,
     };
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
@@ -407,7 +464,7 @@ export default function RecipeDetailPage() {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 
-    const ingredients = (recipe.ingredients ?? []).map((i: unknown) => (i as { text?: string }).text || "").filter(Boolean);
+    const ingredients = scaledIngredients;
     const steps = (recipe.steps ?? []).map((s: unknown) => (s as { text?: string }).text || "").filter(Boolean);
     const tags = (recipe.tags ?? []).filter(Boolean).join(" · ");
     const meta = [
@@ -508,8 +565,8 @@ export default function RecipeDetailPage() {
     if (recipe.source_url) lines.push(`\nSource: ${recipe.source_url}`);
 
     lines.push(`\n## Ingredients`);
-    (recipe.ingredients ?? []).forEach((i: unknown) => {
-      if ((i as { text?: string }).text) lines.push(`- ${(i as { text?: string }).text}`);
+    scaledIngredients.forEach((item) => {
+      if (item) lines.push(`- ${item}`);
     });
 
     lines.push(`\n## Steps`);
@@ -756,6 +813,35 @@ export default function RecipeDetailPage() {
       setShareError(err instanceof Error ? err.message : "Revoke failed.");
       setShareStatus("error");
     }
+  }
+
+  async function handleGenerateNutrition() {
+    if (!recipe || nutritionStatus === "loading") return;
+    setNutritionError("");
+    if (!recipe.servings) {
+      setNutritionError("Add servings to calculate per-serving nutrition.");
+      setNutritionStatus("error");
+      return;
+    }
+    setNutritionStatus("loading");
+    try {
+      const data = await generateRecipeNutrition(recipe.id);
+      setNutrition(data);
+      setNutritionStatus("idle");
+    } catch (err) {
+      setNutritionError(err instanceof Error ? err.message : "Nutrition generation failed.");
+      setNutritionStatus("error");
+    }
+  }
+
+  function formatMacro(value: number) {
+    if (!Number.isFinite(value)) return "—";
+    return Number.isInteger(value) ? `${value}g` : `${value.toFixed(1)}g`;
+  }
+
+  function formatCalories(value: number) {
+    if (!Number.isFinite(value)) return "—";
+    return `${Math.round(value)} kcal`;
   }
 
   return (
@@ -1039,7 +1125,45 @@ export default function RecipeDetailPage() {
           )}
         </div>
       )}
-      
+
+      {showMacrosPreference && (
+        <div className="card stack">
+          <div className="h2">Nutrition (AI estimate)</div>
+          <div className="muted small">Per-serving estimates based on ingredient amounts.</div>
+          <div className="row" style={{ alignItems: "center" }}>
+            <button
+              className="btn ai-generate"
+              type="button"
+              onClick={handleGenerateNutrition}
+              disabled={nutritionStatus === "loading"}
+            >
+              <span className="btn-icon" aria-hidden="true">
+                ✨
+              </span>
+              {nutritionStatus === "loading"
+                ? "Calculating…"
+                : nutrition
+                  ? "Recalculate"
+                  : "Generate"}
+            </button>
+            {nutritionStatus === "error" && <div className="muted small">{nutritionError}</div>}
+          </div>
+          {nutrition && recipe.servings && (
+            <div className="card">
+              <div className="muted small">Per serving ({recipe.servings} total)</div>
+              <div style={{ fontWeight: 700 }}>
+                {formatCalories(nutrition.perServing.calories)}
+              </div>
+              <div className="row">
+                <div>Carbs: {formatMacro(nutrition.perServing.carbs)}</div>
+                <div>Protein: {formatMacro(nutrition.perServing.protein)}</div>
+                <div>Fat: {formatMacro(nutrition.perServing.fat)}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="detail-grid">
         <div className="card">
           <div className="row wrap" style={{ alignItems: "center" }}>

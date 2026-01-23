@@ -11,6 +11,7 @@ import CookModePage from "./pages/CookModePage";
 import GroupsPage from "./pages/GroupsPage";
 import LoginPage from "./pages/LoginPage";
 import InboxPage from "./pages/InboxPage";
+import AccountPreferencesPage from "./pages/AccountPreferencesPage";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import { AuthProvider } from "./auth/AuthProvider";
 import { initPWA } from "./pwa";
@@ -30,6 +31,7 @@ const router = createBrowserRouter([
           { path: "/inbox", element: <InboxPage /> },
           { path: "/shared", element: <SharedRecipesPage /> },
           { path: "/groups", element: <GroupsPage /> },
+          { path: "/account", element: <AccountPreferencesPage /> },
           { path: "/recipes/new", element: <RecipeNewPage /> },
           { path: "/recipes/:id", element: <RecipeDetailPage /> },
           { path: "/recipes/:id/cook", element: <CookModePage /> },

@@ -21,11 +21,21 @@ function AppLayoutInner() {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
+  useEffect(() => {
+    function onThemeChange(event: Event) {
+      const next = (event as CustomEvent<{ theme?: "light" | "dark" }>).detail?.theme;
+      if (next === "light" || next === "dark") setTheme(next);
+    }
+    window.addEventListener("theme-change", onThemeChange);
+    return () => window.removeEventListener("theme-change", onThemeChange);
+  }, []);
+
   const pageTitle = useMemo(() => {
     if (loc.pathname === "/recipes/new") return "New Recipe";
     if (loc.pathname === "/inbox") return "Sharing Inbox";
     if (loc.pathname === "/shared") return "Shared With You";
     if (loc.pathname === "/groups") return "Groups";
+    if (loc.pathname === "/account") return "Account Preferences";
     if (loc.pathname.endsWith("/edit")) return "Edit Recipe";
     if (loc.pathname.endsWith("/cook")) return "Cook Mode";
     if (loc.pathname.startsWith("/recipes/")) return "Recipe Details";
@@ -56,6 +66,7 @@ function AppLayoutInner() {
     loc.pathname.startsWith("/recipes/") &&
     !loc.pathname.endsWith("/edit") &&
     !loc.pathname.endsWith("/cook");
+  const isAccount = loc.pathname === "/account";
 
   useEffect(() => {
     function onSharePermission(e: Event) {
@@ -127,6 +138,9 @@ function AppLayoutInner() {
 
         <div className="nav">
           <div className="nav-title">Account</div>
+          <Link className={`nav-item ${isAccount ? "active" : ""}`} to="/account">
+            Preferences
+          </Link>
           <button className="nav-item ghost" onClick={signOut} title={user?.email ?? ""}>
             Log out
           </button>
@@ -203,7 +217,6 @@ function AppLayoutInner() {
 
         <div className="content">
           <Outlet key={loc.pathname} />
-          <div className="muted small footer-note">Cloud-synced</div>
         </div>
       </main>
     </div>

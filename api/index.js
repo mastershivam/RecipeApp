@@ -20,6 +20,7 @@ import recipeImport from "./_handlers/recipe-import.js";
 import recipeSuggestions from "./_handlers/recipe-suggestions.js";
 import recipeDescription from "./_handlers/recipe-description.js";
 import recipeTags from "./_handlers/recipe-tags.js";
+import recipeNutrition from "./_handlers/recipe-nutrition.js";
 
 const routes = {
   "stats": stats,
@@ -44,6 +45,7 @@ const routes = {
   "recipe-suggestions": recipeSuggestions,
   "recipe-description": recipeDescription,
   "recipe-tags": recipeTags,
+  "recipe-nutrition": recipeNutrition,
 };
 
 function getRoute(req) {

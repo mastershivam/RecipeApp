@@ -15,7 +15,7 @@ import {
   type RecipeNutrition,
   generateRecipeNutrition,
 } from "../lib/recipeService";
-import { scaleIngredient, type UnitMode } from "../lib/ingredientScaling";
+import { formatAmount, scaleIngredient, type UnitMode } from "../lib/ingredientScaling";
 import { listPhotosPage } from "../lib/photoService";
 import { useAuth } from "../auth/UseAuth.ts";
 import VersionComparison from "../ui/VersionComparison";

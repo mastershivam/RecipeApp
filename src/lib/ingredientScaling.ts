@@ -298,7 +298,7 @@ function normalizeMetric(amount: number, unit: "ml" | "g") {
   return { amount, unit };
 }
 
-function formatAmount(amount: number) {
+export function formatAmount(amount: number) {
   const rounded =
     amount >= 10 ? Math.round(amount * 10) / 10 : Math.round(amount * 100) / 100;
   return Number.isInteger(rounded) ? rounded.toString() : rounded.toString();

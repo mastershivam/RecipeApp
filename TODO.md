@@ -1,8 +1,12 @@
-# Recipe Archive TODO
+# keep TODO
 
 ## Now
 - Add share notifications (email).
 - Default Metric / Imperial measurement
+- macros- AI
+- AI suggested tags
+- manage account
+- cook mode, add ingredient list to the right side of the page
 
 
 ## Next
@@ -28,7 +32,7 @@
 - Upload progress indicator (indeterminate).
 - Gallery image fitting fixes.
 - Landing-style login page with global stats.
-- App naming + logo update to Recipe Archive.
+- App naming + logo update to keep.
 - Shared-with-you view with edit/view permissions.
 - Signed URL caching to reduce refetching.
 - Recipe scaling (1x/2x/3x) with metric/imperial/auto conversion.

@@ -3,10 +3,12 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/UseAuth.ts";
 import InboxPanel from "./InboxPanel.tsx";
 import { useInboxData } from "./useInboxData.ts";
+import { SidebarStatsProvider, useSidebarStats } from "./SidebarStatsContext.tsx";
 
-export default function AppLayout() {
+function AppLayoutInner() {
   const loc = useLocation();
   const { user, signOut } = useAuth();
+  const { stats } = useSidebarStats();
 
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     const stored = localStorage.getItem("theme");
@@ -20,14 +22,14 @@ export default function AppLayout() {
   }, [theme]);
 
   const pageTitle = useMemo(() => {
-    if (loc.pathname === "/recipes/new") return "Create recipe";
-    if (loc.pathname === "/inbox") return "Sharing inbox";
-    if (loc.pathname === "/shared") return "Shared with you";
+    if (loc.pathname === "/recipes/new") return "New Recipe";
+    if (loc.pathname === "/inbox") return "Sharing Inbox";
+    if (loc.pathname === "/shared") return "Shared With You";
     if (loc.pathname === "/groups") return "Groups";
-    if (loc.pathname.endsWith("/edit")) return "Edit recipe";
-    if (loc.pathname.endsWith("/cook")) return "Cook mode";
-    if (loc.pathname.startsWith("/recipes/")) return "Recipe details";
-    return "Recipe library";
+    if (loc.pathname.endsWith("/edit")) return "Edit Recipe";
+    if (loc.pathname.endsWith("/cook")) return "Cook Mode";
+    if (loc.pathname.startsWith("/recipes/")) return "Recipe Details";
+    return "Your Recipes";
   }, [loc.pathname]);
 
   const [canShare, setCanShare] = useState(false);
@@ -91,18 +93,7 @@ export default function AppLayout() {
     <div className="app-shell">
       <aside className="sidebar">
         <Link to="/" className="brand" aria-label="Home">
-          <span className="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 64 64" role="img" focusable="false">
-              <path d="M18 10c-4 4 4 6 0 10" />
-              <path d="M30 8c-4 4 4 6 0 10" />
-              <path d="M42 10c-4 4 4 6 0 10" />
-              <path d="M14 48V22h16c6 0 10 4 10 9s-4 9-10 9H14" />
-              <path d="M30 40l10 8" />
-              <path d="M44 48l6-18 6 18" />
-              <path d="M47 40h6" />
-            </svg>
-          </span>
-          <span className="brand-text">Recipe Archive</span>
+          <span className="brand-text">keep</span>
         </Link>
 
         <div className="nav">
@@ -116,10 +107,23 @@ export default function AppLayout() {
           <Link className={`nav-item ${loc.pathname === "/groups" ? "active" : ""}`} to="/groups">
             Groups
           </Link>
-          <Link className={`nav-item ${loc.pathname === "/recipes/new" ? "active" : ""}`} to="/recipes/new">
-            New recipe
-          </Link>
         </div>
+
+        {stats && stats.length > 0 && (
+          <div className="nav">
+            <div className="sidebar-divider" />
+            <div className="nav-title">Stats</div>
+            <div className="sidebar-stats">
+              {stats.map((stat) => (
+                <div key={stat.label} className="sidebar-stat">
+                  <span className="sidebar-stat-value">{stat.value}</span>
+                  <span className="sidebar-stat-label">{stat.label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="sidebar-divider" />
+          </div>
+        )}
 
         <div className="nav">
           <div className="nav-title">Account</div>
@@ -139,7 +143,7 @@ export default function AppLayout() {
       <main className="main">
         <div className="topbar">
           <div>
-            <div className="eyebrow">Kitchen mode</div>
+            
             <div className="page-title">{pageTitle}</div>
           </div>
 
@@ -203,5 +207,13 @@ export default function AppLayout() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function AppLayout() {
+  return (
+    <SidebarStatsProvider>
+      <AppLayoutInner />
+    </SidebarStatsProvider>
   );
 }

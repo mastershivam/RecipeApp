@@ -87,11 +87,10 @@ export default function LoginPage() {
   return (
     <div className="login-shell">
       <div className="login-hero">
-        <div className="eyebrow">Welcome</div>
-        <div className="login-title">Recipe Archive</div>
+        
+        <div className="login-title">keep</div>
         <div className="muted login-subtitle">
-          Your personal cookbook, finally in sync. Store recipes, photos, and cooking flows in one
-          cinematic space.
+          Your personal cookbook. Store recipes, photos, and cooking flows in one space.
         </div>
 
         <div className="login-stats">
@@ -128,7 +127,7 @@ export default function LoginPage() {
       <div className="login-panel card stack">
         <div>
           <div className="eyebrow">Sign in</div>
-          <div className="h1">Recipe Archive access</div>
+          <div className="h1">keep access</div>
           <div className="muted small">Sign in to keep your recipes safe and synced.</div>
         </div>
 

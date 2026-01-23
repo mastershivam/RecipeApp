@@ -189,17 +189,17 @@ export default function RecipeNewPage() {
       <div className="card page-hero">
         <div>
           <div className="eyebrow">Create</div>
-          <div className="hero-title">New recipe</div>
+          <div className="hero-title">New Recipe</div>
           <div className="muted">
-            Capture the idea while it is fresh. Add steps, ingredients, and a hero photo.
+            Capture the idea while it is fresh. Add steps, ingredients, and a photo.
           </div>
         </div>
         <div className="hero-side">
           <div className="hero-side-title">Quick tips</div>
           <ul className="tip-list">
-            <li>Lead with the most iconic photo.</li>
-            <li>Keep steps short and actionable.</li>
-            <li>Tag with cuisine + vibe.</li>
+            <li>Lead with the photo.</li>
+            <li>Keep steps short and sweet.</li>
+            <li>Tag with cuisine and vibe.</li>
           </ul>
         </div>
       </div>
@@ -233,7 +233,7 @@ export default function RecipeNewPage() {
       <div className="card stack">
         <div className="h2">Import JSON</div>
         <div className="muted small">
-          Upload a JSON file exported from Recipe Archive or a compatible format.
+          Upload a JSON file exported from keep or a compatible format.
         </div>
         <div className="row wrap">
           <input
@@ -269,7 +269,7 @@ export default function RecipeNewPage() {
         </div>
 
         <RecipeForm
-          submitLabel="Create recipe"
+          submitLabel="New Recipe"
           suggestedTags={suggestedTags}
           onSubmit={async (draft) => {
             // 1) Create recipe row (Supabase generates id)
@@ -329,7 +329,7 @@ export default function RecipeNewPage() {
                       : item
                   )
                 );
-                setUploadError(`Recipe saved, but ${msg}`);
+                setUploadError(`Kept, but ${msg}`);
                 return;
               } finally {
                 setUploading(false);
@@ -341,7 +341,7 @@ export default function RecipeNewPage() {
               invalidatePhotoCache(firstPhotoId);
             }
 
-            nav("/", { state: { toast: { type: "success", message: "Recipe saved." } } });
+            nav("/", { state: { toast: { type: "success", message: "Kept" } } });
           }}
         />
       </div>

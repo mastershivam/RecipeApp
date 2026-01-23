@@ -1,5 +1,6 @@
 import { supabase, supabaseUrl } from "./supabaseClient";
 import type { RecipePhoto } from "./types";
+import { requestStatsRefresh } from "./statsEvents";
 const BUCKET = "recipe-photos";
 const SIGNED_URL_TTL_MS = 55 * 60 * 1000;
 const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
@@ -195,6 +196,7 @@ export async function addPhoto(
 
   if (updErr) throw new Error(updErr.message);
 
+  requestStatsRefresh();
   return updated as RecipePhoto;
 }
 
@@ -282,6 +284,7 @@ export async function deletePhoto(photo: RecipePhoto) {
   // Delete metadata row
   const { error } = await supabase.from("recipe_photos").delete().eq("id", photo.id);
   if (error) throw new Error(error.message);
+  requestStatsRefresh();
 }
 
 export async function getCoverUrlByPhotoId(photoId: string): Promise<string | undefined> {

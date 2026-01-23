@@ -3,20 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Recipe Archive Logo Preview</title>
+    <title>keep Logo Preview</title>
     <style>
       body {
         margin: 0;
-        font-family: system-ui, -apple-system, Segoe UI, sans-serif;
-        background: #0f1222;
-        color: #f4f5ff;
+        font-family: "General Sans", system-ui, -apple-system, Segoe UI, sans-serif;
+        background: #f7f6f3;
+        color: #1f2933;
         display: grid;
         min-height: 100vh;
         place-items: center;
       }
       .panel {
-        background: rgba(20, 22, 42, 0.9);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(247, 246, 243, 0.9);
+        border: 1px solid rgba(31, 41, 51, 0.12);
         border-radius: 18px;
         padding: 24px;
         display: grid;
@@ -28,16 +28,16 @@
         height: 256px;
       }
       button {
-        background: linear-gradient(120deg, #7d6bff, #4cc9f0);
+        background: #6b8e6e;
         border: none;
-        color: #0f1222;
-        font-weight: 700;
+        color: #ffffff;
+        font-weight: 600;
         padding: 10px 16px;
         border-radius: 12px;
         cursor: pointer;
       }
       a {
-        color: #b8bbd8;
+        color: #6b7280;
         text-decoration: none;
         font-size: 12px;
       }
@@ -45,7 +45,7 @@
   </head>
   <body>
     <div class="panel">
-      <img id="logo" src="/recipe-archive-logo.svg" alt="Recipe Archive logo" />
+      <img id="logo" src="/recipe-archive-logo.svg" alt="keep logo" />
       <button id="download" type="button">Download PNG</button>
       <a href="/recipe-archive-logo.svg">View SVG</a>
       <canvas id="canvas" width="512" height="512" style="display:none"></canvas>
@@ -65,7 +65,7 @@
       button.addEventListener("click", () => {
         render();
         const link = document.createElement("a");
-        link.download = "recipe-archive-logo.png";
+        link.download = "keep-logo.png";
         link.href = canvas.toDataURL("image/png");
         link.click();
       });

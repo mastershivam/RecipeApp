@@ -1,6 +1,6 @@
-# Recipe Archive
+# keep
 
-Recipe Archive is a modern, full-featured recipe management application built with React, TypeScript, and Supabase. Store, organize, and manage your favorite recipes with photos, tags, and detailed cooking instructions.
+keep is a modern, full-featured recipe management application built with React, TypeScript, and Supabase. Store, organize, and manage your favorite recipes with photos, tags, and detailed cooking instructions.
 
 ## Features
 
@@ -40,7 +40,7 @@ Before you begin, ensure you have the following installed:
 
 ```bash
 git clone <your-repo-url>
-cd RecipeArchive
+cd keep
 ```
 If your local folder name differs, adjust the `cd` command accordingly.
 
@@ -390,7 +390,7 @@ Server-side search uses PostgreSQL full-text search with a `search_vector` colum
 
 ### Import / Export Formats
 
-Recipe Archive supports JSON import/export and Markdown export.
+keep supports JSON import/export and Markdown export.
 
 **JSON schema (export/import)**
 
@@ -460,7 +460,7 @@ vercel dev
 ## Project Structure
 
 ```
-RecipeArchive/
+keep/
 ├── src/
 │   ├── auth/              # Authentication components
 │   │   ├── AuthProvider.tsx
@@ -497,7 +497,7 @@ RecipeArchive/
 
 ```mermaid
 flowchart TB
-  subgraph Client["Client: Recipe Archive (React + Vite)"]
+  subgraph Client["Client: keep (React + Vite)"]
     UI["UI Components<br/>AppLayout, Pages, Forms"]
     AuthCtx["AuthProvider<br/>Session + User"]
     Data["Services Layer<br/>recipeService, photoService, groupService"]

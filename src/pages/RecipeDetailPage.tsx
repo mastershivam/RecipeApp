@@ -422,7 +422,7 @@ export default function RecipeDetailPage() {
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>${escapeHtml(recipe.title)} - Recipe Archive</title>
+    <title>${escapeHtml(recipe.title)} - keep</title>
     <style>
       :root { color-scheme: light; }
       body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; color: #1d1d1f; }

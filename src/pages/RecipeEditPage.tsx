@@ -270,7 +270,7 @@ export default function RecipeEditPage() {
 
         {/* Your existing form (save disables button + shows inline errors) */}
           <RecipeForm
-            submitLabel="Edit recipe"
+            submitLabel="Keep"
             suggestedTags={suggestedTags}
             initial={{
             id: recipe.id,
@@ -300,7 +300,7 @@ export default function RecipeEditPage() {
               source_url: draft.sourceUrl ?? null,
             });
 
-            nav("/", { state: { toast: { type: "success", message: "Recipe updated." } } });
+            nav("/", { state: { toast: { type: "success", message: "Kept" } } });
           }}
         />
       </div>

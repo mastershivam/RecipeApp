@@ -3,22 +3,25 @@ export default function TagFilter({
     active,
     onToggle,
     onClear,
+    action,
   }: {
     tags: string[];
     active: Set<string>;
     onToggle: (t: string) => void;
     onClear: () => void;
+    action?: React.ReactNode;
   }) {
     if (tags.length === 0) return null;
   
     return (
       <div className="card">
-        <div className="row" style={{ alignItems: "baseline" }}>
+        <div className="row" style={{ alignItems: "center" }}>
           <div>
             <div className="h2">Tags</div>
-            <div className="muted small">Tap to filter</div>
+            <div className="muted small">Filter by tag</div>
           </div>
-          <div style={{ flex: 0 }}>
+          <div style={{ display: "flex", gap: 8, flex: 0, whiteSpace: "nowrap" }}>
+            {action}
             <button className="btn" onClick={onClear} disabled={active.size === 0}>
               Clear
             </button>

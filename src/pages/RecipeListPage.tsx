@@ -17,6 +17,7 @@ export default function RecipeListPage() {
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [coverUrls, setCoverUrls] = useState<CoverMap>({});
   const coverIdsRef = useRef<Record<string, string | null>>({});
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
 
   const loc = useLocation();
   const nav = useNavigate();
@@ -68,6 +69,7 @@ export default function RecipeListPage() {
     };
   }, [query, activeTagsArray]);
 
+
   useEffect(() => {
     const nextIds: Record<string, string | null> = {};
     let changed = false;
@@ -108,16 +110,6 @@ export default function RecipeListPage() {
     return Array.from(s).sort();
   }, [recipes]);
 
-  const stats = useMemo(() => {
-    const withPhotos = recipes.filter((r) => r.cover_photo_id).length;
-    return [
-      { label: "Recipes", value: recipes.length.toString().padStart(2, "0") },
-      { label: "Tags", value: allTags.length.toString().padStart(2, "0") },
-      { label: "With photos", value: withPhotos.toString().padStart(2, "0") },
-    ];
-  }, [recipes, allTags.length]);
-
-
   useEffect(() => {
     let cancelled = false;
 
@@ -155,11 +147,8 @@ export default function RecipeListPage() {
     });
   }
 
-  const showHighlights = query.trim() === "" && activeTagsArray.length === 0;
-  const favorites = useMemo(
-    () => recipes.filter((r) => r.is_favorite).slice(0, 6),
-    [recipes]
-  );
+  const showHighlights = query.trim() === "" && activeTagsArray.length === 0 && !favoritesOnly;
+  
   const recentlyCooked = useMemo(() => {
     return [...recipes]
       .filter((r) => r.last_cooked_at)
@@ -168,42 +157,31 @@ export default function RecipeListPage() {
           new Date(b.last_cooked_at as string).getTime() -
           new Date(a.last_cooked_at as string).getTime()
       )
-      .slice(0, 6);
+      .slice(0, 4);
   }, [recipes]);
+
+  const visibleRecipes = useMemo(() => {
+    if (!favoritesOnly) return recipes;
+    return recipes.filter((r) => r.is_favorite);
+  }, [recipes, favoritesOnly]);
 
   return (
     <div className="stack">
-      <div className="card hero">
-        <div className="hero-content">
-          <div className="eyebrow">Taste lab</div>
-          <div className="hero-title">Your recipe vault</div>
-          <div className="muted">
-            Search, remix, and save your best ideas in one cookbook.
-          </div>
-
+      <div className="card hero hero-single">
+        
           <div className="hero-search">
             <input
               className="input search-input"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search recipes or tags..."
+              placeholder="Search recipes or tags"
             />
           </div>
-        </div>
-
-        <div className="stat-grid">
-          {stats.map((stat) => (
-            <div key={stat.label} className="card stat-card">
-              <div className="stat-value">{stat.value}</div>
-              <div className="stat-label">{stat.label}</div>
-            </div>
-          ))}
-        </div>
+        
       </div>
 
       {toast && (
         <div className={`toast ${toast.type}`}>
-          {toast.type === "success" ? "✅ " : "⚠️ "}
           {toast.message}
         </div>
       )}
@@ -213,18 +191,16 @@ export default function RecipeListPage() {
         active={activeTags}
         onToggle={toggleTag}
         onClear={() => setActiveTags(new Set())}
+        action={
+          <button
+            className={`btn ${favoritesOnly ? "primary" : ""}`}
+            type="button"
+            onClick={() => setFavoritesOnly((prev) => !prev)}
+          >
+            Favorites only
+          </button>
+        }
       />
-
-      {showHighlights && favorites.length > 0 && (
-        <div className="stack">
-          <div className="h2">Favorites</div>
-          <div className="grid">
-            {favorites.map((r) => (
-              <RecipeCard key={r.id} recipe={r} coverUrl={coverUrls[r.id]} />
-            ))}
-          </div>
-        </div>
-      )}
 
       {showHighlights && recentlyCooked.length > 0 && (
         <div className="stack">
@@ -237,13 +213,15 @@ export default function RecipeListPage() {
         </div>
       )}
 
-      {recipes.length === 0 ? (
-        <div className="card muted">No recipes yet. Hit “New recipe”.</div>
+      {visibleRecipes.length === 0 ? (
+        <div className="card muted">
+          {favoritesOnly ? "No favorites yet." : "Nothing kept yet."}
+        </div>
       ) : (
         <div className="stack">
           {showHighlights && <div className="h2">All recipes</div>}
           <div className="grid">
-            {recipes.map((r) => (
+            {visibleRecipes.map((r) => (
               <RecipeCard key={r.id} recipe={r} coverUrl={coverUrls[r.id]} />
             ))}
           </div>

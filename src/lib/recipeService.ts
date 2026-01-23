@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { requestStatsRefresh } from "./statsEvents";
 import type { Recipe, RecipeChange, RecipeLine } from "./types";
 
 export type SharePermission = "view" | "edit";
@@ -234,6 +235,7 @@ export async function createRecipe(input: {
     .single();
 
   if (error) throw new Error(error.message);
+  requestStatsRefresh();
   return data as Recipe;
 }
 
@@ -246,12 +248,14 @@ export async function updateRecipe(id: string, patch: Partial<Omit<Recipe, "id" 
     .single();
 
   if (error) throw new Error(error.message);
+  requestStatsRefresh();
   return data as Recipe;
 }
 
 export async function deleteRecipe(id: string) {
   const { error } = await supabase.from("recipes").delete().eq("id", id);
   if (error) throw new Error(error.message);
+  requestStatsRefresh();
 }
 
 export async function listTagSuggestions(): Promise<string[]> {

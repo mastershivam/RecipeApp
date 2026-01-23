@@ -4,13 +4,13 @@
 - Add share notifications (email).
 - Default Metric / Imperial measurement
 - macros- AI
-- AI suggested tags
 - manage account
 - cook mode, add ingredient list to the right side of the page
 
 
 ## Next
 - Recipe import improvements (retries + source parsing fallbacks).
+
 - New recipe suggestion based on ingredients (ai)
 - Bulk tag editor + tag merge tool.
 - Smart shopping list generation (ingredients aggregation + scaling).
@@ -23,6 +23,7 @@
 
 ## Done
 - AI recipe import
+- AI suggested tags
 - Click and drag photo import
 - Recipe version compare + rollback
 - Architectural diagram.

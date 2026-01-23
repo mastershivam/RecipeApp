@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { type RecipeLine } from "../lib/types";
-import { generateRecipeDescription } from "../lib/recipeService";
+import { generateRecipeDescription, generateRecipeTags } from "../lib/recipeService";
 
 type RecipeFormData = {
   id: string;
@@ -18,7 +18,9 @@ type RecipeFormData = {
   updatedAt?: number;
 };
 
-function normaliseTags(s: string): string[] {
+const MAX_TAGS = 4;
+
+function normaliseTags(s: string, limit = MAX_TAGS): string[] {
   return s
     .split(",")
     .map((x) => x.trim())
@@ -27,7 +29,8 @@ function normaliseTags(s: string): string[] {
       x
         .toLowerCase()
         .replace(/\b\w/g, (char) => char.toUpperCase())
-    );
+    )
+    .slice(0, limit);
 }
 
 function linesFromText(s: string): RecipeLine[] {
@@ -67,15 +70,17 @@ export default function RecipeForm({
   const [error, setError] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [generatingTags, setGeneratingTags] = useState(false);
 
   const tags = useMemo(() => normaliseTags(tagsText), [tagsText]);
   const tagSuggestions = useMemo(
-    () => suggestedTags.filter((t) => !tags.includes(t)).slice(0, 10),
+    () => (tags.length >= MAX_TAGS ? [] : suggestedTags.filter((t) => !tags.includes(t)).slice(0, 10)),
     [suggestedTags, tags]
   );
 
   function addTagSuggestion(tag: string) {
-    const next = Array.from(new Set([...tags, tag]));
+    if (tags.length >= MAX_TAGS) return;
+    const next = Array.from(new Set([...tags, tag])).slice(0, MAX_TAGS);
     setTagsText(next.join(", "));
   }
 
@@ -112,6 +117,44 @@ export default function RecipeForm({
       setError(err instanceof Error ? err.message : "Description generation failed.");
     } finally {
       setGeneratingDescription(false);
+    }
+  }
+
+  async function handleGenerateTags() {
+    if (generatingTags) return;
+    setError("");
+
+    const cleanTitle = title.trim();
+    if (!cleanTitle) {
+      setError("Add a title before generating tags.");
+      return;
+    }
+
+    const ingredients = linesFromText(ingredientsText);
+    const steps = linesFromText(stepsText);
+    if (ingredients.length === 0 || steps.length === 0) {
+      setError("Add ingredients and steps before generating tags.");
+      return;
+    }
+
+    try {
+      setGeneratingTags(true);
+      const generated = await generateRecipeTags({
+        title: cleanTitle,
+        description: description.trim(),
+        ingredients,
+        steps,
+        existingTags: suggestedTags,
+      });
+      const nextTags = normaliseTags(generated.join(", "));
+      if (nextTags.length === 0) {
+        throw new Error("AI tags were empty.");
+      }
+      setTagsText(nextTags.join(", "));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Tag generation failed.");
+    } finally {
+      setGeneratingTags(false);
     }
   }
 
@@ -197,7 +240,20 @@ export default function RecipeForm({
           </div>
 
           <div>
-            <div className="muted small">Tags (comma-separated)</div>
+            <div className="row ai-row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+              <div className="muted small">Tags (comma-separated, up to {MAX_TAGS})</div>
+              <button
+                className="btn ai-generate"
+                type="button"
+                onClick={handleGenerateTags}
+                disabled={generatingTags}
+              >
+                <span className="btn-icon" aria-hidden="true">
+                  ✨
+                </span>
+                {generatingTags ? "Generating…" : tags.length > 0 ? "Regenerate with AI" : "Generate with AI"}
+              </button>
+            </div>
             <input
               className="input"
               value={tagsText}

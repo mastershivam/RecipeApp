@@ -309,6 +309,30 @@ export async function generateRecipeDescription(input: {
   return description;
 }
 
+export async function generateRecipeTags(input: {
+  title: string;
+  description?: string;
+  ingredients?: RecipeLine[];
+  steps?: RecipeLine[];
+  existingTags?: string[];
+}): Promise<string[]> {
+  const token = await getAccessToken();
+  const res = await fetch("/api/recipe-tags", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      title: input.title,
+      description: input.description ?? "",
+      ingredients: (input.ingredients ?? []).map((line) => line.text),
+      steps: (input.steps ?? []).map((line) => line.text),
+      existingTags: input.existingTags ?? [],
+    }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const data = (await res.json()) as { tags?: string[] };
+  return Array.isArray(data.tags) ? data.tags : [];
+}
+
 export async function listRecipeChanges(recipeId: string): Promise<RecipeChange[]> {
   const { data, error } = await supabase
     .from("recipe_changes")

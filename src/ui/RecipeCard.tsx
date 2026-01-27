@@ -11,7 +11,7 @@ export default function RecipeCard({
   return (
     <Link to={`/recipes/${recipe.id}`} className="card recipe-card" style={{ display: "block" }}>
       <div className="recipe-card-media">
-        <img className="thumb" src={coverUrl || "/pwa-512.png"} alt="" />
+        <img className="thumb" src={coverUrl || "/recipe-placeholder.svg"} alt="" />
         {recipe.is_favorite && <div className="favorite-badge">Favorite</div>}
       </div>
       <div style={{ marginTop: 10 }}>

@@ -2,8 +2,7 @@
 
 ## Now
 - Add share notifications (email).
-- cook mode, add ingredient list to the right side of the page
-
+- photo upload -> recipe
 
 ## Next
 - Recipe import improvements (retries + source parsing fallbacks).
@@ -21,6 +20,8 @@
 
 ## Done
 - Default Metric / Imperial measurement
+- cook mode, add ingredient list to the right side of the page
+
 - AI recipe import
 - AI suggested tags
 - Click and drag photo import

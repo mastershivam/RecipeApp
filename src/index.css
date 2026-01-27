@@ -812,16 +812,6 @@ html[data-theme="dark"] .textarea::placeholder {
   aspect-ratio: 16 / 9;
 }
 
-.detail-hero-placeholder {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  display: grid;
-  place-items: center;
-  background: var(--surface-1);
-}
-
 .detail-actions {
   display: flex;
   gap: 10px;

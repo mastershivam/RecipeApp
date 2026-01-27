@@ -947,25 +947,23 @@ export default function RecipeDetailPage() {
 
         <div className="detail-hero-media">
           {(() => {
-            const coverSrc = coverUrl || photos[0]?.signed_url || "";
+            const coverSrc = coverUrl || photos[0]?.signed_url;
+            const placeholderSrc = "/recipe-placeholder.svg";
+            const hasPhoto = Boolean(coverSrc);
             const coverIdx =
               recipe.cover_photo_id ? photos.findIndex((p) => p.id === recipe.cover_photo_id) : 0;
 
-            return coverSrc ? (
+            return (
               <img
                 className="thumb zoomable detail-hero-img"
-                src={coverSrc}
-                alt=""
+                src={coverSrc || placeholderSrc}
+                alt={hasPhoto ? "" : "Recipe placeholder"}
                 onClick={() => {
-                  if (photos.length === 0) return;
+                  if (!hasPhoto || photos.length === 0) return;
                   const idx = coverIdx >= 0 ? coverIdx : 0;
                   setLightboxIndex(idx);
                 }}
               />
-            ) : (
-              <div className="detail-hero-placeholder">
-                <div className="muted small">No photo yet</div>
-              </div>
             );
           })()}
         </div>
